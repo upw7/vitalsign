@@ -1,0 +1,2385 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0ea5e9">
+<title>نظام المختبر الطبي</title>
+
+<script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<style>
+  :root {
+    --أساسي: #0ea5e9; --أساسي-غامق: #0284c7; --أساسي-فاتح: #e0f2fe;
+    --نجاح: #10b981; --خطر: #ef4444; --تحذير: #f59e0b; --بنفسجي: #8b5cf6;
+    --داكن: #0f172a; --رمادي-غامق: #334155; --رمادي: #64748b;
+    --رمادي-فاتح: #cbd5e1; --خلفية: #f8fafc; --أبيض: #ffffff;
+    --ظل-صغير: 0 1px 3px rgba(15,23,42,.08);
+    --ظل-متوسط: 0 4px 12px rgba(15,23,42,.08);
+    --ظل-كبير: 0 12px 32px rgba(15,23,42,.12);
+    --حد: 16px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow-x: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, Arial, sans-serif;
+    background: var(--خلفية); direction: rtl; color: var(--داكن);
+    line-height: 1.6; font-size: 16px; min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: ''; position: fixed; top: 0; left: 0; right: 0; height: 300px;
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 50%, #0369a1 100%);
+    z-index: -1;
+  }
+  .شاشة { max-width: 800px; margin: 0 auto; padding: 24px 20px 60px; animation: دخول .35s cubic-bezier(.4,0,.2,1); }
+  @keyframes دخول { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .مخفي { display: none !important; }
+
+  .رأس_صفحة { display: flex; align-items: center; gap: 16px; padding: 20px 0 30px; color: white; }
+  .زر_رجوع {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: rgba(255,255,255,.2); backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,.3); color: white; font-size: 20px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; padding: 0;
+  }
+  .زر_رجوع:active { background: rgba(255,255,255,.35); }
+  .رأس_صفحة h2 { font-size: 22px; font-weight: 700; color: white; margin: 0; flex: 1; }
+
+  .بطاقة_محتوى { background: var(--أبيض); border-radius: var(--حد); padding: 24px 20px; box-shadow: var(--ظل-متوسط); margin-bottom: 16px; }
+
+  .حاوية_دخول { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .بطاقة_دخول { background: white; border-radius: 24px; padding: 36px 28px; box-shadow: var(--ظل-كبير); width: 100%; max-width: 440px; }
+  .شعار_دخول { text-align: center; margin-bottom: 28px; }
+  .شعار_دخول .أيقونة { font-size: 60px; margin-bottom: 12px; }
+  .شعار_دخول h1 { font-size: 24px; font-weight: 800; color: var(--داكن); margin-bottom: 6px; }
+  .شعار_دخول p { color: var(--رمادي); font-size: 14px; }
+
+  .حقل { margin-bottom: 16px; }
+  .حقل label { display: block; font-size: 14px; font-weight: 600; color: var(--رمادي-غامق); margin-bottom: 8px; }
+  input[type=text], input[type=email], input[type=password],
+  input[type=number], input[type=tel], select, textarea {
+    width: 100%; padding: 15px 16px; font-size: 16px;
+    border: 2px solid var(--رمادي-فاتح); border-radius: 12px;
+    background: var(--أبيض); font-family: inherit; color: var(--داكن);
+    transition: all .2s; -webkit-appearance: none; appearance: none;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none; border-color: var(--أساسي);
+    box-shadow: 0 0 0 4px rgba(14,165,233,.12);
+  }
+  input::placeholder { color: var(--رمادي-فاتح); }
+  textarea { min-height: 200px; resize: vertical; line-height: 1.8; }
+  select {
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
+    background-repeat: no-repeat; background-position: left 16px center;
+    background-size: 20px; padding-left: 48px;
+  }
+
+  .حقل_كلمة_المرور { position: relative; }
+  .حقل_كلمة_المرور input { padding-left: 52px; }
+  .زر_العين {
+    position: absolute; left: 12px; bottom: 8px;
+    width: 40px; height: 40px; background: transparent; border: none;
+    cursor: pointer; font-size: 20px; display: flex;
+    align-items: center; justify-content: center; border-radius: 8px;
+    transition: all .2s; color: var(--رمادي); padding: 0;
+  }
+  .زر_العين:active { background: var(--خلفية); }
+  .زر_العين.مفتوح { color: var(--أساسي); }
+
+  .زر_رئيسي {
+    width: 100%; padding: 17px 24px; font-size: 16px; font-weight: 700;
+    color: white; background: linear-gradient(135deg, var(--أساسي), var(--أساسي-غامق));
+    border: none; border-radius: 12px; cursor: pointer; font-family: inherit;
+    transition: all .2s; box-shadow: 0 4px 12px rgba(14,165,233,.3);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .زر_رئيسي:active { transform: scale(.98); }
+  .زر_رئيسي:disabled { opacity: .6; cursor: not-allowed; }
+  .زر_ثانوي { background: white; color: var(--رمادي-غامق); border: 2px solid var(--رمادي-فاتح); box-shadow: none; }
+  .زر_خطر { background: var(--خطر); box-shadow: 0 4px 12px rgba(239,68,68,.3); }
+  .زر_نجاح { background: var(--نجاح); box-shadow: 0 4px 12px rgba(16,185,129,.3); }
+  .زر_بنفسجي { background: var(--بنفسجي); box-shadow: 0 4px 12px rgba(139,92,246,.3); }
+
+  .حاوية_اسم { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .بطاقة_اسم { background: white; border-radius: 24px; padding: 36px 28px; box-shadow: var(--ظل-كبير); width: 100%; max-width: 480px; }
+  .بطاقة_اسم .أيقونة { font-size: 60px; text-align: center; margin-bottom: 16px; }
+  .بطاقة_اسم h2 { font-size: 22px; font-weight: 800; color: var(--داكن); text-align: center; margin-bottom: 8px; }
+  .بطاقة_اسم .معلومة {
+    text-align: center; color: var(--رمادي); font-size: 14px;
+    margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #f1f5f9;
+  }
+  .بطاقة_اسم .معلومة strong { color: var(--أساسي-غامق); font-weight: 700; }
+  .آخر_تحديث { text-align: center; font-size: 12px; color: var(--رمادي); margin-top: 16px; }
+
+  .رأس_لوحة { color: white; padding: 30px 0 40px; text-align: center; }
+  .رأس_لوحة .شعار { font-size: 54px; margin-bottom: 12px; }
+  .رأس_لوحة h1 { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+  .رأس_لوحة .دور {
+    display: inline-block; background: rgba(255,255,255,.2);
+    padding: 6px 16px; border-radius: 20px; font-size: 13px;
+    font-weight: 600; margin-top: 8px; backdrop-filter: blur(10px);
+  }
+  .رأس_لوحة .تعديل_اسم {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(255,255,255,.15); padding: 4px 12px;
+    border-radius: 20px; font-size: 11px; margin-top: 8px;
+    cursor: pointer; border: 1px solid rgba(255,255,255,.3);
+  }
+  .رأس_لوحة .تعديل_اسم:active { background: rgba(255,255,255,.3); }
+
+  .بطاقات_رئيسية { display: grid; gap: 14px; margin-top: -30px; }
+  .بطاقة_رئيسية {
+    background: var(--أبيض); border: none; border-radius: var(--حد);
+    padding: 22px; display: flex; align-items: center; gap: 16px;
+    cursor: pointer; transition: all .25s; box-shadow: var(--ظل-متوسط);
+    text-align: right; width: 100%; font-family: inherit; color: var(--داكن);
+  }
+  .بطاقة_رئيسية:active { transform: scale(.98); box-shadow: var(--ظل-صغير); }
+  .أيقونة_البطاقة {
+    width: 56px; height: 56px; border-radius: 16px; display: flex;
+    align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0;
+  }
+  .أيقونة_البطاقة.أساسي { background: linear-gradient(135deg, #e0f2fe, #bae6fd); }
+  .أيقونة_البطاقة.بنفسجي { background: linear-gradient(135deg, #ede9fe, #ddd6fe); }
+  .أيقونة_البطاقة.أخضر { background: linear-gradient(135deg, #d1fae5, #a7f3d0); }
+  .أيقونة_البطاقة.برتقالي { background: linear-gradient(135deg, #ffedd5, #fed7aa); }
+  .أيقونة_البطاقة.وردي { background: linear-gradient(135deg, #fce7f3, #fbcfe8); }
+  .نص_البطاقة h3 { font-size: 17px; font-weight: 700; margin-bottom: 3px; }
+  .نص_البطاقة p { font-size: 13px; color: var(--رمادي); }
+
+  .قائمة_التحاليل { display: grid; gap: 10px; margin: 12px 0; }
+  .عنصر_تحليل {
+    display: flex; align-items: center; gap: 14px; padding: 14px;
+    background: var(--خلفية); border: 2px solid transparent;
+    border-radius: 12px; cursor: pointer; transition: all .2s; position: relative;
+  }
+  .عنصر_تحليل:has(input:checked) { background: var(--أساسي-فاتح); border-color: var(--أساسي); }
+  .عنصر_تحليل input[type=checkbox] { position: absolute; opacity: 0; pointer-events: none; }
+  .مربع_اختيار {
+    width: 24px; height: 24px; border: 2.5px solid var(--رمادي-فاتح);
+    border-radius: 7px; flex-shrink: 0; display: flex; align-items: center;
+    justify-content: center; transition: all .2s; background: white;
+  }
+  .عنصر_تحليل:has(input:checked) .مربع_اختيار { background: var(--أساسي); border-color: var(--أساسي); }
+  .مربع_اختيار::after {
+    content: '✓'; color: white; font-size: 14px; font-weight: 900;
+    opacity: 0; transform: scale(.5); transition: all .2s;
+  }
+  .عنصر_تحليل:has(input:checked) .مربع_اختيار::after { opacity: 1; transform: scale(1); }
+  .أيقونة_تحليل {
+    width: 40px; height: 40px; border-radius: 10px; display: flex;
+    align-items: center; justify-content: center; font-size: 20px;
+    background: white; flex-shrink: 0;
+  }
+  .اسم_التحليل { font-size: 15px; font-weight: 600; color: var(--داكن); flex: 1; }
+
+  .بطاقة_مراجع {
+    background: white; border-radius: var(--حد); padding: 18px;
+    box-shadow: var(--ظل-صغير); margin-bottom: 12px; border: 1px solid #e2e8f0;
+  }
+  .رأس_البطاقة {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 10px; margin-bottom: 12px; padding-bottom: 12px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .رأس_البطاقة .اسم { font-size: 16px; font-weight: 800; color: var(--داكن); word-break: break-word; }
+  .رأس_البطاقة .معلومة { font-size: 13px; color: var(--رمادي); margin-top: 4px; }
+  .شارة { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+  .شارة.انتظار { background: #fef3c7; color: #92400e; }
+  .شارة.جاري { background: var(--أساسي-فاتح); color: var(--أساسي-غامق); }
+  .شارة.جاهز { background: #d1fae5; color: #065f46; }
+  .شارة.مُرسل { background: #e0e7ff; color: #3730a3; }
+
+  .جدول_تحاليل { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+  .جدول_تحاليل tr { border-bottom: 1px solid #f1f5f9; }
+  .جدول_تحاليل tr:last-child { border-bottom: none; }
+  .جدول_تحاليل td { padding: 10px 6px; font-size: 14px; text-align: right; }
+  .جدول_تحاليل td:last-child { font-weight: 700; color: var(--أساسي-غامق); text-align: left; }
+
+  .أزرار_بطاقة { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .زر_صغير {
+    flex: 1; min-width: 100px; padding: 11px 14px; font-size: 13px;
+    font-weight: 600; border-radius: 10px; border: none; cursor: pointer;
+    font-family: inherit; transition: all .2s;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+  }
+  .زر_صغير.أساسي { background: var(--أساسي-فاتح); color: var(--أساسي-غامق); }
+  .زر_صغير.أخضر { background: #d1fae5; color: #065f46; }
+  .زر_صغير.أحمر { background: #fee2e2; color: var(--خطر); }
+
+  .حاوية_بحث { position: relative; margin-bottom: 16px; }
+  .حاوية_بحث input { padding-right: 46px; }
+  .حاوية_بحث .أيقونة_بحث {
+    position: absolute; right: 16px; top: 50%;
+    transform: translateY(-50%); font-size: 18px;
+    color: var(--رمادي-فاتح); pointer-events: none;
+  }
+
+  .شبكة_إحصاء { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .بطاقة_إحصاء {
+    background: white; border-radius: var(--حد); padding: 22px 18px;
+    text-align: center; box-shadow: var(--ظل-متوسط); position: relative; overflow: hidden;
+  }
+  .بطاقة_إحصاء::before { content: ''; position: absolute; top: 0; right: 0; left: 0; height: 4px; }
+  .بطاقة_إحصاء.أساسي::before { background: var(--أساسي); }
+  .بطاقة_إحصاء.أخضر::before { background: var(--نجاح); }
+  .بطاقة_إحصاء.برتقالي::before { background: var(--تحذير); }
+  .بطاقة_إحصاء.بنفسجي::before { background: var(--بنفسجي); }
+  .بطاقة_إحصاء .رقم { font-size: 34px; font-weight: 800; color: var(--داكن); line-height: 1; margin-bottom: 6px; }
+  .بطاقة_إحصاء .عنوان { font-size: 13px; color: var(--رمادي); font-weight: 600; }
+
+  .حالة_فارغة { text-align: center; padding: 50px 20px; color: var(--رمادي); }
+  .حالة_فارغة .أيقونة { font-size: 54px; opacity: .4; margin-bottom: 12px; }
+  .حالة_فارغة p { font-size: 15px; font-weight: 500; }
+
+  .توست {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--داكن); color: white; padding: 13px 22px; border-radius: 12px;
+    font-size: 14px; font-weight: 600; z-index: 9999; box-shadow: var(--ظل-كبير);
+    animation: ظهور_توست .3s; max-width: 90%; text-align: center;
+  }
+  @keyframes ظهور_توست { from { opacity: 0; transform: translate(-50%, 20px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+  .شاشة_تحميل {
+    position: fixed; inset: 0; background: var(--خلفية);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 99999; flex-direction: column; gap: 18px;
+  }
+  .شاشة_تحميل .دوّار {
+    width: 50px; height: 50px; border: 4px solid var(--رمادي-فاتح);
+    border-top-color: var(--أساسي); border-radius: 50%;
+    animation: دوران .8s linear infinite;
+  }
+  @keyframes دوران { to { transform: rotate(360deg); } }
+  .شاشة_تحميل p { color: var(--رمادي); font-size: 14px; font-weight: 600; }
+
+  .تنبيه { padding: 13px 16px; border-radius: 10px; margin-bottom: 14px; font-size: 14px; font-weight: 600; }
+  .تنبيه.خطأ { background: #fee2e2; color: #991b1b; }
+  .تنبيه.نجاح { background: #dcfce7; color: #166534; }
+  .تنبيه.معلومة { background: var(--أساسي-فاتح); color: var(--أساسي-غامق); }
+  .تنبيه.تحذير { background: #fef3c7; color: #92400e; }
+
+  .مؤشر_الخطوات { display: flex; justify-content: center; gap: 8px; margin-bottom: 20px; }
+  .نقطة_الخطوة { width: 32px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.3); transition: all .3s; }
+  .نقطة_الخطوة.نشط { background: white; width: 48px; }
+
+  .بطاقة_رقم {
+    background: linear-gradient(135deg, var(--أساسي-فاتح), #bae6fd);
+    border-radius: var(--حد); padding: 22px; text-align: center;
+    margin-bottom: 16px; border: 2px dashed var(--أساسي);
+  }
+  .بطاقة_رقم .تسمية { font-size: 12px; font-weight: 600; color: var(--أساسي-غامق); letter-spacing: 1px; margin-bottom: 8px; }
+  .بطاقة_رقم .رقم { font-size: 20px; font-weight: 800; color: var(--داكن); word-break: break-word; }
+
+  .حقل_قيمة { background: var(--خلفية); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+  .عنوان_حقل { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .عنوان_حقل .أيقونة { width: 34px; height: 34px; border-radius: 10px; background: white; display: flex; align-items: center; justify-content: center; font-size: 17px; }
+  .عنوان_حقل .اسم { font-size: 15px; font-weight: 700; color: var(--داكن); }
+  .عنوان_حقل .وحدة { font-size: 12px; color: var(--رمادي); font-weight: 500; }
+  .نطاق_طبيعي { font-size: 12px; color: var(--نجاح); background: #d1fae5; padding: 3px 10px; border-radius: 20px; font-weight: 600; }
+
+  .اختيار_جنس { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .بطاقة_جنس {
+    background: var(--خلفية); border: 2px solid transparent; border-radius: 10px;
+    padding: 12px; text-align: center; cursor: pointer; transition: all .2s;
+    font-size: 14px; font-weight: 600; color: var(--رمادي-غامق);
+  }
+  .بطاقة_جنس:has(input:checked) { background: var(--أساسي-فاتح); border-color: var(--أساسي); color: var(--أساسي-غامق); }
+  .بطاقة_جنس input { display: none; }
+
+  .شبكة_فصائل {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .زر_فصيلة {
+    background: white;
+    border: 2px solid var(--رمادي-فاتح);
+    border-radius: 10px;
+    padding: 14px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s;
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--داكن);
+    font-family: inherit;
+    position: relative;
+  }
+  .زر_فصيلة:active { transform: scale(.95); }
+  .زر_فصيلة.مختار {
+    background: linear-gradient(135deg, var(--أساسي), var(--أساسي-غامق));
+    border-color: var(--أساسي);
+    color: white;
+    box-shadow: 0 4px 12px rgba(14,165,233,.3);
+  }
+  .زر_فصيلة.مختار::after {
+    content: '✓';
+    position: absolute;
+    top: 4px;
+    left: 6px;
+    font-size: 12px;
+    color: rgba(255,255,255,.9);
+  }
+
+  .صف_نطاق {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px; background: var(--خلفية);
+    border-radius: 10px; margin-bottom: 8px;
+  }
+  .صف_نطاق .أيقونة { font-size: 22px; flex-shrink: 0; }
+  .صف_نطاق .اسم { font-weight: 700; font-size: 14px; flex: 0 0 110px; }
+  .صف_نطاق input {
+    flex: 1; padding: 10px 12px; font-size: 14px;
+    border: 2px solid var(--رمادي-فاتح); border-radius: 8px;
+    background: white;
+  }
+
+  .قسم_إعدادات { margin-bottom: 24px; }
+  .قسم_إعدادات h3 { font-size: 16px; font-weight: 700; color: var(--داكن); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .قسم_إعدادات .وصف { font-size: 13px; color: var(--رمادي); margin-bottom: 12px; line-height: 1.7; }
+  .قسم_إعدادات .وصف code { background: var(--أساسي-فاتح); color: var(--أساسي-غامق); padding: 2px 8px; border-radius: 6px; font-weight: 600; }
+
+  .شبكة_إجراءات { display: grid; gap: 10px; }
+
+  .معاينة_قالب {
+    background: var(--خلفية); border: 2px dashed var(--رمادي-فاتح);
+    border-radius: 10px; padding: 14px; font-size: 13px;
+    white-space: pre-wrap; line-height: 1.8; margin-top: 12px;
+    font-family: monospace; color: var(--رمادي-غامق);
+    max-height: 200px; overflow-y: auto;
+  }
+
+  .زر_بياناتي {
+    background: linear-gradient(135deg, var(--نجاح), #059669) !important;
+    box-shadow: 0 4px 12px rgba(16,185,129,.3);
+  }
+
+  .زر_أدمن {
+    background: linear-gradient(135deg, var(--بنفسجي), #7c3aed) !important;
+    box-shadow: 0 4px 12px rgba(139,92,246,.3);
+  }
+
+  .شاشة_خطأ {
+    position: fixed; inset: 0; background: var(--خلفية);
+    z-index: 99998; padding: 40px 20px; overflow-y: auto;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .بطاقة_خطأ {
+    background: white; border-radius: 16px; padding: 32px 24px;
+    max-width: 600px; width: 100%; box-shadow: var(--ظل-كبير);
+    text-align: center;
+  }
+  .بطاقة_خطأ .أيقونة_خطأ { font-size: 64px; margin-bottom: 16px; }
+  .بطاقة_خطأ h2 { color: var(--خطر); font-size: 22px; margin-bottom: 12px; }
+  .بطاقة_خطأ p { color: var(--رمادي); margin-bottom: 16px; font-size: 14px; }
+  .تفاصيل_خطأ {
+    background: #fee2e2; color: #991b1b; padding: 16px;
+    border-radius: 10px; text-align: right; font-size: 13px;
+    white-space: pre-wrap; word-break: break-word; margin: 16px 0;
+    max-height: 200px; overflow-y: auto;
+    font-family: monospace;
+  }
+  .أزرار_خطأ { display: flex; gap: 10px; margin-top: 20px; }
+  .أزرار_خطأ button { flex: 1; padding: 14px; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .أزرار_خطأ .أساسي { background: var(--أساسي); color: white; }
+  .أزرار_خطأ .خطر { background: var(--خطر); color: white; }
+
+  .بطاقة_خطر { border: 2px solid var(--خطر) !important; background: linear-gradient(180deg, #fef2f2, white) !important; }
+  .بطاقة_خطر h3 { color: var(--خطر) !important; }
+
+  @media (max-width: 480px) {
+    .شاشة { padding: 20px 14px 50px; }
+    .بطاقة_محتوى { padding: 20px 16px; }
+    .شبكة_إحصاء { grid-template-columns: 1fr; }
+    .شبكة_فصائل { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .زر_فصيلة { padding: 12px 4px; font-size: 14px; }
+    .صف_نطاق { flex-wrap: wrap; }
+    .صف_نطاق .اسم { flex: 1 0 auto; }
+  }
+</style>
+</head>
+<body>
+
+<!-- شاشة الأخطاء -->
+<div id="شاشة_الخطأ" class="شاشة_خطأ مخفي">
+  <div class="بطاقة_خطأ">
+    <div class="أيقونة_خطأ">⚠️</div>
+    <h2>حدث خطأ</h2>
+    <p>قد يكون بسبب عدم الاتصال بـ Firebase أو مشكلة في الإعدادات</p>
+    <div class="تفاصيل_خطأ" id="تفاصيل_الخطأ"></div>
+    <div class="أزرار_خطأ">
+      <button class="أساسي" onclick="location.reload()">🔄 إعادة المحاولة</button>
+      <button class="خطر" onclick="localStorage.clear(); sessionStorage.clear(); location.reload();">🗑️ مسح الجلسة</button>
+    </div>
+  </div>
+</div>
+
+<div id="شاشة_التحميل" class="شاشة_تحميل">
+  <div class="دوّار"></div>
+  <p>جاري التحميل...</p>
+</div>
+
+<!-- تسجيل الدخول -->
+<div id="شاشة_الدخول" class="حاوية_دخول مخفي">
+  <div class="بطاقة_دخول">
+    <div class="شعار_دخول">
+      <div class="أيقونة">🏥</div>
+      <h1>نظام المختبر الطبي</h1>
+      <p>سجّل دخولك بحسابك الرسمي</p>
+    </div>
+    <div id="تنبيه_الدخول"></div>
+    <div class="حقل">
+      <label>البريد الإلكتروني</label>
+      <input type="email" id="دخول_بريد" placeholder="example@clinic.com" autocomplete="email">
+    </div>
+    <div class="حقل حقل_كلمة_المرور">
+      <label>كلمة المرور</label>
+      <input type="password" id="دخول_كلمة" placeholder="••••••••" autocomplete="current-password">
+      <button type="button" class="زر_العين" id="زر_عين_الدخول">👁️</button>
+    </div>
+    <button class="زر_رئيسي" id="زر_دخول">🔐 تسجيل الدخول</button>
+    <p style="text-align:center;margin-top:20px;font-size:12px;color:var(--رمادي);">
+      للحصول على حساب، تواصل مع المسؤول
+    </p>
+  </div>
+</div>
+
+<!-- الاسم -->
+<div id="شاشة_الاسم" class="حاوية_اسم مخفي">
+  <div class="بطاقة_اسم">
+    <div class="أيقونة">👋</div>
+    <h2>مرحباً بك!</h2>
+    <div class="معلومة" id="معلومة_الحساب"></div>
+    <div class="حقل">
+      <label>✏️ اكتب اسمك اليوم (يظهر للفريق)</label>
+      <input type="text" id="اسم_اليوم" placeholder="مثال: د. خالد" maxlength="40">
+    </div>
+    <button class="زر_رئيسي" id="زر_حفظ_الاسم">حفظ ومتابعة ←</button>
+    <div class="آخر_تحديث" id="آخر_تحديث"></div>
+  </div>
+</div>
+
+<!-- اللوحة -->
+<div id="شاشة_اللوحة" class="شاشة مخفي">
+  <div class="رأس_لوحة">
+    <div class="شعار">🏥</div>
+    <h1 id="ترحيب_المستخدم">أهلاً بك</h1>
+    <div class="دور" id="عرض_الدور"></div>
+    <div class="تعديل_اسم" id="زر_تعديل_الاسم">✏️ تغيير الاسم</div>
+  </div>
+  <div class="بطاقات_رئيسية" id="بطاقات_اللوحة"></div>
+  <button class="زر_رئيسي زر_خطر" id="زر_خروج" style="margin-top: 20px;">🚪 تسجيل الخروج</button>
+</div>
+
+<!-- تسجيل مراجع -->
+<div id="شاشة_تسجيل_مراجع" class="شاشة مخفي">
+  <div class="رأس_صفحة">
+    <button class="زر_رجوع" data-رجوع="اللوحة">←</button>
+    <h2>تسجيل مراجع جديد</h2>
+  </div>
+  <div class="مؤشر_الخطوات">
+    <div class="نقطة_الخطوة نشط" id="نقطة1"></div>
+    <div class="نقطة_الخطوة" id="نقطة2"></div>
+  </div>
+  <div id="خطوة_بيانات_المراجع">
+    <div class="بطاقة_محتوى">
+      <div class="حقل">
+        <label>الاسم الثلاثي</label>
+        <input type="text" id="مراجع_اسم" placeholder="مثال: محمد أحمد العتيبي">
+      </div>
+      <div class="حقل">
+        <label>رقم الجوال (مع رمز الدولة)</label>
+        <input type="tel" id="مراجع_جوال" placeholder="966501234567" inputmode="numeric">
+      </div>
+      <div class="حقل">
+        <label>الجنس</label>
+        <div class="اختيار_جنس">
+          <label class="بطاقة_جنس"><input type="radio" name="جنس" value="ذكر" checked> 👨 ذكر</label>
+          <label class="بطاقة_جنس"><input type="radio" name="جنس" value="أنثى"> 👩 أنثى</label>
+        </div>
+      </div>
+      <div class="حقل">
+        <label>العمر</label>
+        <input type="number" id="مراجع_عمر" placeholder="مثال: 35" inputmode="numeric">
+      </div>
+      <button class="زر_رئيسي" id="زر_التالي_1">التالي ←</button>
+    </div>
+  </div>
+  <div id="خطوة_التحاليل" class="مخفي">
+    <div class="بطاقة_رقم">
+      <div class="تسمية">رقم المراجع</div>
+      <div class="رقم" id="عرض_رقم_المراجع"></div>
+    </div>
+    <div class="بطاقة_محتوى">
+      <div class="حقل"><label>اختر التحاليل المطلوبة</label></div>
+      <div class="قائمة_التحاليل" id="قائمة_التحاليل_المتاحة"></div>
+      <br>
+      <button class="زر_رئيسي" id="زر_حفظ_مراجع">💾 حفظ المراجع</button>
+    </div>
+  </div>
+</div>
+
+<!-- قائمة المراجعين -->
+<div id="شاشة_قائمة_المراجعين" class="شاشة مخفي">
+  <div class="رأس_صفحة">
+    <button class="زر_رجوع" data-رجوع="اللوحة">←</button>
+    <h2>قائمة المراجعين</h2>
+  </div>
+  <div class="حاوية_بحث">
+    <input type="text" id="بحث_مراجعين" placeholder="ابحث بالاسم أو الرقم...">
+    <span class="أيقونة_بحث">🔍</span>
+  </div>
+  <div id="قائمة_مراجعين"></div>
+</div>
+
+<!-- إدارة التحاليل -->
+<div id="شاشة_إدارة_التحاليل" class="شاشة مخفي">
+  <div class="رأس_صفحة">
+    <button class="زر_رجوع" data-رجوع="اللوحة">←</button>
+    <h2>إدارة أنواع التحاليل</h2>
+  </div>
+  <div class="بطاقة_محتوى">
+    <h3 style="margin-bottom: 12px; font-size: 16px;">➕ إضافة تحليل جديد</h3>
+    <div class="حقل"><label>اسم التحليل</label><input type="text" id="تحليل_اسم" placeholder="مثال: وظائف الكبد"></div>
+    <div class="حقل"><label>الأيقونة</label><input type="text" id="تحليل_أيقونة" placeholder="🩺" maxlength="2"></div>
+    <div class="حقل"><label>الوحدة</label><input type="text" id="تحليل_وحدة" placeholder="mg/dL"></div>
+    <div class="حقل"><label>النطاق الطبيعي</label><input type="text" id="تحليل_نطاق" placeholder="70-100"></div>
+    <button class="زر_رئيسي" id="زر_إضافة_تحليل">إضافة التحليل</button>
+  </div>
+  <div class="بطاقة_محتوى">
+    <h3 style="margin-bottom: 12px; font-size: 16px;">📋 التحاليل الحالية</h3>
+    <div id="قائمة_أنواع_التحاليل"></div>
+  </div>
+</div>
+
+<!-- المراجعين المتاحين -->
+<div id="شاشة_مراجعين_متاحين" class="شاشة مخفي">
+  <div class="رأس_صفحة">
+    <button class="زر_رجوع" data-رجوع="اللوحة">←</button>
+    <h2>المراجعين المتاحين</h2>
+  </div>
+  <div class="تنبيه معلومة">🔔 هؤلاء المراجعين بانتظار أخصائي. اختر واحد لبدء التحليل.</div>
+  <div id="قائمة_متاحين"></div>
+</div>
+
+<!-- المراجعين عندي -->
+<div id="شاشة_مراجعين_عندي" class="شاشة مخفي">
+  <div class="رأس_صفحة">
+    <button class="زر_رجوع" data-رجوع="اللوحة">←</button>
+    <h2>المراجعين اللي عندي</h2>
+  </div>
+  <div id="قائمة_عندي"></div>
+</div>
+
+<!-- إدخال نتائج -->
+<div id="شاشة_إدخال_نتائج" class="شاشة مخفي">
+  <div class="رأس_صفحة">
+    <button class="زر_رجوع" data-رجوع="مراجعين_عندي">←</button>
+    <h2>إدخال النتائج</h2>
+  </div>
+  <div id="بيانات_المراجع_الحالي"></div>
+  <div class="بطاقة_محتوى">
+    <div class="حقل"><label>إدخال نتائج التحاليل</label></div>
+    <div id="حقول_النتائج"></div>
+    <br>
+    <button class="زر_رئيسي زر_نجاح" id="زر_إنهاء_التحليل">✅ إنهاء وإرسال للـ Discharge</button>
+  </div>
+</div>
+
+<!-- بياناتي -->
+<div id="شاشة_بياناتي" class="شاشة مخفي">
+  <div class="رأس_صفحة">
+    <button class="زر_رجوع" data-رجوع="اللوحة">←</button>
+    <h2>بياناتي</h2>
+  </div>
+  <div id="محتوى_بياناتي"></div>
+</div>
+
+<!-- جاهزين للإرسال -->
+<div id="شاشة_جاهزين_للإرسال" class="شاشة مخفي">
+  <div class="رأس_صفحة">
+    <button class="زر_رجوع" data-رجوع="اللوحة">←</button>
+    <h2>جاهزين للإرسال</h2>
+  </div>
+  <div class="تنبيه معلومة">📤 هؤلاء المراجعين خلصت تحاليلهم. أرسل النتائج لهم.</div>
+  <div id="قائمة_جاهزين"></div>
+</div>
+
+<!-- إعدادات Discharge -->
+<div id="شاشة_إعدادات_الdischarge" class="شاشة مخفي">
+  <div class="رأس_صفحة">
+    <button class="زر_رجوع" data-رجوع="اللوحة">←</button>
+    <h2>الإعدادات</h2>
+  </div>
+
+  <div class="بطاقة_محتوى">
+    <div class="قسم_إعدادات">
+      <h3>📏 النطاقات الطبيعية للتحاليل</h3>
+      <p class="وصف">عدّل النطاق الطبيعي لكل تحليل. يظهر للأخصائي عند إدخال النتائج.</p>
+      <div id="قائمة_النطاقات"></div>
+    </div>
+  </div>
+
+  <div class="بطاقة_محتوى">
+    <div class="قسم_إعدادات">
+      <h3>💬 قالب رسالة الواتساب</h3>
+      <p class="وصف">
+        استخدم المتغيرات التالية:<br>
+        <code>{الاسم}</code> = اسم المراجع<br>
+        <code>{الرقم}</code> = رقم المراجع<br>
+        <code>{التاريخ}</code> = التاريخ<br>
+        <code>{النتائج}</code> = قائمة نتائج التحاليل
+      </p>
+      <textarea id="قالب_الرسالة" placeholder="اكتب القالب هنا..."></textarea>
+      <div class="معاينة_قالب" id="معاينة_القالب"></div>
+      <br>
+      <button class="زر_رئيسي" id="زر_حفظ_القالب">💾 حفظ القالب</button>
+    </div>
+  </div>
+</div>
+
+<!-- تصدير البيانات -->
+<div id="شاشة_تصدير" class="شاشة مخفي">
+  <div class="رأس_صفحة">
+    <button class="زر_رجوع" data-رجوع="اللوحة">←</button>
+    <h2>تصدير البيانات</h2>
+  </div>
+  <div class="بطاقة_محتوى">
+    <h3 style="margin-bottom: 12px; font-size: 16px;">📊 تصدير كل البيانات</h3>
+    <p style="color: var(--رمادي); font-size: 14px; margin-bottom: 16px; line-height: 1.7;">
+      يقوم بتصدير ملف Excel يحتوي على 3 أوراق:
+    </p>
+    <ul style="color: var(--رمادي-غامق); font-size: 14px; padding-right: 20px; margin-bottom: 20px; line-height: 2;">
+      <li>📋 <strong>المرضى</strong> - قائمة كاملة بكل المراجعين</li>
+      <li>🧪 <strong>التحاليل</strong> - كل تحليل مع اسم المراجع وقيمته</li>
+      <li>👨‍🔬 <strong>الأخصائيون</strong> - إحصائيات كل أخصائي</li>
+    </ul>
+    <button class="زر_رئيسي زر_نجاح" id="زر_تصدير_excel">📥 تصدير ملف Excel</button>
+  </div>
+
+  <div class="بطاقة_محتوى">
+    <h3 style="margin-bottom: 12px; font-size: 16px;">📈 إحصائيات سريعة</h3>
+    <div id="ملخص_الإحصائيات"></div>
+  </div>
+</div>
+
+<!-- 🛡️ لوحة الأدمن -->
+<div id="شاشة_أدمن" class="شاشة مخفي">
+  <div class="رأس_صفحة">
+    <button class="زر_رجوع" data-رجوع="اللوحة">←</button>
+    <h2>🛡️ لوحة المسؤول</h2>
+  </div>
+
+  <div class="تنبيه تحذير">
+    ⚠️ هذه الصفحة للمسؤول فقط. الأدوات هنا تؤثر على كل البيانات.
+  </div>
+
+  <!-- Backup -->
+  <div class="بطاقة_محتوى">
+    <h3 style="margin-bottom: 12px; font-size: 16px;">💾 النسخ الاحتياطي</h3>
+    <p style="color: var(--رمادي); font-size: 14px; margin-bottom: 16px; line-height: 1.7;">
+      يقوم بتصدير ملف JSON يحتوي على <strong>كل بيانات النظام</strong>:
+      المستخدمين، المرضى، التحاليل، أنواع التحاليل، القالب، والإعدادات.
+    </p>
+    <div class="شبكة_إجراءات">
+      <button class="زر_رئيسي زر_نجاح" id="زر_backup">⬇️ تحميل Backup كامل (JSON)</button>
+      <button class="زر_رئيسي زر_ثانوي" id="زر_restore">⬆️ استعادة من Backup</button>
+      <input type="file" id="ملف_backup" accept=".json" style="display:none">
+    </div>
+  </div>
+
+  <!-- إحصائيات -->
+  <div class="بطاقة_محتوى">
+    <h3 style="margin-bottom: 12px; font-size: 16px;">📊 إحصائيات البيانات</h3>
+    <div id="إحصائيات_الأدمن"></div>
+  </div>
+
+  <!-- منطقة الخطر -->
+  <div class="بطاقة_محتوى بطاقة_خطر">
+    <h3 style="margin-bottom: 12px; font-size: 16px;">⚠️ منطقة الخطر</h3>
+    <p style="color: var(--رمادي); font-size: 14px; margin-bottom: 16px; line-height: 1.7;">
+      هذه العمليات <strong>لا يمكن التراجع عنها</strong>. تأكد من أخذ نسخة احتياطية أولاً.
+    </p>
+    <div class="شبكة_إجراءات">
+      <button class="زر_رئيسي زر_خطر" id="زر_حذف_المرضى">🗑️ حذف كل المرضى والتحاليل</button>
+      <button class="زر_رئيسي زر_خطر" id="زر_حذف_التحاليل_الجاهزة">🗑️ حذف التحاليل المُرسلة فقط</button>
+      <button class="زر_رئيسي زر_خطر" id="زر_تصفير_العداد">🔢 تصفير عداد المراجعين</button>
+      <button class="زر_رئيسي زر_خطر" id="زر_حذف_الكل">💥 حذف كل شي (إعادة تعيين كاملة)</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import {
+  getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import {
+  getDatabase, ref, set, get, push, update, remove
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCDYiItCqMQJ29eCfeuwxAkRfX_P5RFiVY",
+  authDomain: "lab-clinic-qu.firebaseapp.com",
+  databaseURL: "https://lab-clinic-qu-default-rtdb.firebaseio.com",
+  projectId: "lab-clinic-qu",
+  storageBucket: "lab-clinic-qu.firebasestorage.app",
+  messagingSenderId: "175531982195",
+  appId: "1:175531982195:web:c7e09c6af54afe40619906"
+};
+
+let app, auth, db;
+try {
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getDatabase(app);
+} catch (خطأ) {
+  عرض_خطأ_فادح('فشل الاتصال بـ Firebase: ' + خطأ.message);
+  throw خطأ;
+}
+
+// ==========================================
+// متغيرات عامة
+// ==========================================
+let المستخدم = null;
+let بيانات_المستخدم = null;
+let أنواع_التحاليل_الحالية = {};
+let المراجع_الحالي = null;
+let المراجع_الحالي_للتحليل = null;
+let جاري_الحفظ = false;
+let قالب_الرسالة_الحالي = '';
+
+const ADMIN_EMAIL = 'lab@basil.com';
+
+const أسماء_الأدوار = {
+  reception: 'موظف استقبال',
+  specialist: 'أخصائي تحاليل',
+  discharge: 'موظف تسليم',
+  admin: 'مسؤول النظام'
+};
+
+const فصائل_الدم = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+const القالب_الافتراضي = `نتائج التحاليل الطبية
+------------------------
+الاسم: {الاسم}
+الرقم: {الرقم}
+التاريخ: {التاريخ}
+------------------------
+
+{النتائج}
+
+------------------------
+شكراً لاستخدامكم خدماتنا`;
+
+// ==========================================
+// عرض الأخطاء
+// ==========================================
+function عرض_خطأ_فادح(رسالة) {
+  document.getElementById('شاشة_التحميل').classList.add('مخفي');
+  document.getElementById('شاشة_الخطأ').classList.remove('مخفي');
+  document.getElementById('تفاصيل_الخطأ').textContent = رسالة;
+}
+
+window.addEventListener('error', (e) => { console.error('خطأ عام:', e.error); });
+window.addEventListener('unhandledrejection', (e) => { console.error('وعد مرفوض:', e.reason); });
+
+// ==========================================
+// أدوات
+// ==========================================
+function توست(رسالة) {
+  const قديم = document.querySelector('.توست');
+  if (قديم) قديم.remove();
+  const جديد = document.createElement('div');
+  جديد.className = 'توست';
+  جديد.textContent = رسالة;
+  document.body.appendChild(جديد);
+  setTimeout(() => جديد.remove(), 3000);
+}
+
+function تنبيه_دخول(رسالة, نوع = 'خطأ') {
+  const حاوية = document.getElementById('تنبيه_الدخول');
+  if (!حاوية) return;
+  حاوية.innerHTML = `<div class="تنبيه ${نوع}">${رسالة}</div>`;
+  setTimeout(() => { حاوية.innerHTML = ''; }, 6000);
+}
+
+function إخفاء_الكل() {
+  document.querySelectorAll('.شاشة, .حاوية_دخول, .حاوية_اسم').forEach(ش => ش.classList.add('مخفي'));
+}
+
+function إظهار_شاشة(معرف) {
+  إخفاء_الكل();
+  const شاشة = document.getElementById(معرف);
+  if (شاشة) شاشة.classList.remove('مخفي');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function وقت_عربي(ts) {
+  if (!ts) return '';
+  return new Date(ts).toLocaleString('ar-SA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function تاريخ_عربي(ts) {
+  if (!ts) return '';
+  return new Date(ts).toLocaleDateString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function هو_فصيلة_دم(نوع) {
+  if (!نوع || !نوع.name) return false;
+  return نوع.name.includes('فصيلة');
+}
+
+// ==========================================
+// تسجيل الدخول
+// ==========================================
+async function دخول() {
+  const البريد = document.getElementById('دخول_بريد').value.trim().toLowerCase();
+  const الكلمة = document.getElementById('دخول_كلمة').value;
+  if (!البريد || !الكلمة) return تنبيه_دخول('أدخل البريد وكلمة المرور');
+
+  const زر = document.getElementById('زر_دخول');
+  زر.disabled = true; زر.textContent = 'جاري الدخول...';
+  try {
+    await signInWithEmailAndPassword(auth, البريد, الكلمة);
+  } catch (خطأ) {
+    let رسالة = 'فشل الدخول';
+    if (خطأ.code === 'auth/user-not-found' || خطأ.code === 'auth/invalid-credential') رسالة = 'البريد أو كلمة المرور غير صحيحة';
+    if (خطأ.code === 'auth/wrong-password') رسالة = 'كلمة المرور خطأ';
+    if (خطأ.code === 'auth/invalid-email') رسالة = 'البريد غير صحيح';
+    if (خطأ.code === 'auth/too-many-requests') رسالة = 'محاولات كثيرة، حاول لاحقاً';
+    if (خطأ.code === 'auth/network-request-failed') رسالة = 'فشل الاتصال بالإنترنت';
+    if (خطأ.code === 'auth/api-key-not-valid') رسالة = 'مفتاح API خطأ - تواصل مع المطور';
+    if (خطأ.code === 'auth/operation-not-allowed') رسالة = 'الطريقة غير مفعّلة في Firebase';
+    تنبيه_دخول(رسالة);
+    console.error('خطأ الدخول:', خطأ);
+  } finally {
+    زر.disabled = false; زر.textContent = '🔐 تسجيل الدخول';
+  }
+}
+
+document.getElementById('زر_دخول').addEventListener('click', دخول);
+document.getElementById('دخول_كلمة').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') دخول();
+});
+
+document.getElementById('زر_عين_الدخول').addEventListener('click', function() {
+  const حقل = document.getElementById('دخول_كلمة');
+  if (حقل.type === 'password') {
+    حقل.type = 'text'; this.textContent = '🙈'; this.classList.add('مفتوح');
+  } else {
+    حقل.type = 'password'; this.textContent = '👁️'; this.classList.remove('مفتوح');
+  }
+  حقل.focus();
+});
+
+document.getElementById('زر_خروج').addEventListener('click', async () => {
+  if (confirm('تسجيل الخروج؟')) await signOut(auth);
+});
+
+// ==========================================
+// مراقبة المصادقة
+// ==========================================
+onAuthStateChanged(auth, async (مستخدم) => {
+  try {
+    document.getElementById('شاشة_التحميل').classList.add('مخفي');
+
+    if (مستخدم) {
+      المستخدم = مستخدم;
+      const بريد = مستخدم.email.toLowerCase();
+      const snap = await get(ref(db, `users/${مستخدم.uid}`));
+
+      if (snap.exists()) {
+        بيانات_المستخدم = { uid: مستخدم.uid, ...snap.val() };
+        if (بريد === ADMIN_EMAIL) {
+          بيانات_المستخدم.role = 'admin';
+          if (snap.val().role !== 'admin') {
+            await update(ref(db, `users/${مستخدم.uid}`), { role: 'admin' });
+          }
+        }
+        await تحميل_أنواع_التحاليل();
+        await تحميل_القالب();
+        if (بيانات_المستخدم.currentName && بيانات_المستخدم.currentName.trim() !== '') {
+          عرض_اللوحة();
+        } else {
+          عرض_شاشة_الاسم();
+        }
+      } else {
+        let دور_افتراضي = 'reception';
+        if (بريد.startsWith('spec')) دور_افتراضي = 'specialist';
+        if (بريد.startsWith('discharge')) دور_افتراضي = 'discharge';
+        if (بريد === ADMIN_EMAIL) دور_افتراضي = 'admin';
+
+        await set(ref(db, `users/${مستخدم.uid}`), {
+          email: بريد, role: دور_افتراضي, currentName: '', createdAt: Date.now()
+        });
+
+        بيانات_المستخدم = { uid: مستخدم.uid, email: بريد, role: دور_افتراضي, currentName: '' };
+        await تحميل_أنواع_التحاليل();
+        await تحميل_القالب();
+        عرض_شاشة_الاسم();
+      }
+    } else {
+      المستخدم = null;
+      بيانات_المستخدم = null;
+      إظهار_شاشة('شاشة_الدخول');
+    }
+  } catch (خطأ) {
+    console.error('خطأ في تحميل البيانات:', خطأ);
+    عرض_خطأ_فادح(
+      'حدث خطأ في تحميل بياناتك من قاعدة البيانات.\n\n' +
+      'الأخطاء المحتملة:\n' +
+      '• عدم الاتصال بالإنترنت\n' +
+      '• قواعد Firebase Rules تمنع الوصول\n' +
+      '• مشكلة في إعدادات Firebase\n\n' +
+      'تفاصيل الخطأ:\n' + (خطأ.message || خطأ)
+    );
+  }
+});
+
+// ==========================================
+// تحميل البيانات
+// ==========================================
+async function تحميل_أنواع_التحاليل() {
+  const snapshot = await get(ref(db, 'testTypes'));
+  if (snapshot.exists()) {
+    أنواع_التحاليل_الحالية = snapshot.val();
+  } else {
+    const افتراضية = {
+      t1: { name: 'فصيلة الدم', icon: '🩸', unit: '', normalRange: '', active: true, order: 1 },
+      t2: { name: 'الهيموغلوبين', icon: '🧪', unit: 'g/dL', normalRange: '13-17', active: true, order: 2 },
+      t3: { name: 'السكر التراكمي', icon: '📊', unit: '%', normalRange: '4-5.6', active: true, order: 3 },
+      t4: { name: 'السكر العشوائي', icon: '🍬', unit: 'mg/dL', normalRange: '70-140', active: true, order: 4 },
+      t5: { name: 'ضغط الدم', icon: '💓', unit: 'mmHg', normalRange: '90/60 - 120/80', active: true, order: 5 }
+    };
+    await set(ref(db, 'testTypes'), افتراضية);
+    أنواع_التحاليل_الحالية = افتراضية;
+  }
+}
+
+async function تحميل_القالب() {
+  const snapshot = await get(ref(db, 'settings/whatsappTemplate'));
+  قالب_الرسالة_الحالي = snapshot.exists() ? snapshot.val() : القالب_الافتراضي;
+}
+
+// ==========================================
+// شاشة الاسم
+// ==========================================
+function عرض_شاشة_الاسم() {
+  إظهار_شاشة('شاشة_الاسم');
+  document.getElementById('معلومة_الحساب').innerHTML = `
+    <strong>${المستخدم.email}</strong><br>
+    الدور: <strong>${أسماء_الأدوار[بيانات_المستخدم.role]}</strong>
+  `;
+  const حقل_الاسم = document.getElementById('اسم_اليوم');
+  حقل_الاسم.value = بيانات_المستخدم.currentName || '';
+  setTimeout(() => حقل_الاسم.focus(), 100);
+
+  const آخر = document.getElementById('آخر_تحديث');
+  if (بيانات_المستخدم.lastNameChange) {
+    آخر.textContent = `آخر تحديث للاسم: ${وقت_عربي(بيانات_المستخدم.lastNameChange)}`;
+  } else {
+    آخر.textContent = '';
+  }
+}
+
+async function حفظ_الاسم() {
+  const الاسم = document.getElementById('اسم_اليوم').value.trim();
+  if (!الاسم || الاسم.length < 2) return alert('اكتب اسمك (حرفين على الأقل)');
+
+  const زر = document.getElementById('زر_حفظ_الاسم');
+  زر.disabled = true; زر.textContent = 'جاري الحفظ...';
+  try {
+    await update(ref(db, `users/${المستخدم.uid}`), {
+      currentName: الاسم, lastNameChange: Date.now()
+    });
+    بيانات_المستخدم.currentName = الاسم;
+    بيانات_المستخدم.lastNameChange = Date.now();
+    توست('✅ تم حفظ اسمك');
+    عرض_اللوحة();
+  } catch (خطأ) {
+    console.error(خطأ);
+    alert('حدث خطأ في الحفظ: ' + خطأ.message);
+  } finally {
+    زر.disabled = false; زر.textContent = 'حفظ ومتابعة ←';
+  }
+}
+
+document.getElementById('زر_حفظ_الاسم').addEventListener('click', حفظ_الاسم);
+document.getElementById('اسم_اليوم').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') حفظ_الاسم();
+});
+document.getElementById('زر_تعديل_الاسم').addEventListener('click', () => عرض_شاشة_الاسم());
+
+// ==========================================
+// لوحة التحكم
+// ==========================================
+function بطاقات_الاستقبال() {
+  return `
+    <button class="بطاقة_رئيسية" data-انتقال="شاشة_تسجيل_مراجع">
+      <div class="أيقونة_البطاقة أساسي">➕</div>
+      <div class="نص_البطاقة"><h3>تسجيل مراجع جديد</h3><p>إضافة مراجع مع التحاليل</p></div>
+    </button>
+    <button class="بطاقة_رئيسية" data-انتقال="شاشة_قائمة_المراجعين">
+      <div class="أيقونة_البطاقة بنفسجي">📋</div>
+      <div class="نص_البطاقة"><h3>قائمة المراجعين</h3><p>متابعة حالة المراجعين</p></div>
+    </button>
+    <button class="بطاقة_رئيسية" data-انتقال="شاشة_إدارة_التحاليل">
+      <div class="أيقونة_البطاقة برتقالي">⚙️</div>
+      <div class="نص_البطاقة"><h3>إدارة أنواع التحاليل</h3><p>إضافة/تعديل/حذف تحليل</p></div>
+    </button>
+    <button class="بطاقة_رئيسية" data-انتقال="شاشة_تصدير">
+      <div class="أيقونة_البطاقة أخضر">📊</div>
+      <div class="نص_البطاقة"><h3>تصدير البيانات</h3><p>ملف Excel بكل البيانات</p></div>
+    </button>
+  `;
+}
+
+function بطاقات_الأخصائي() {
+  return `
+    <button class="بطاقة_رئيسية" data-انتقال="شاشة_مراجعين_متاحين">
+      <div class="أيقونة_البطاقة أساسي">🔔</div>
+      <div class="نص_البطاقة"><h3>المراجعين المتاحين</h3><p>اختر مراجع لبدء تحليله</p></div>
+    </button>
+    <button class="بطاقة_رئيسية" data-انتقال="شاشة_مراجعين_عندي">
+      <div class="أيقونة_البطاقة بنفسجي">🔬</div>
+      <div class="نص_البطاقة"><h3>المراجعين اللي عندي</h3><p>أكمل التحاليل وأدخل النتائج</p></div>
+    </button>
+    <button class="بطاقة_رئيسية زر_بياناتي" data-انتقال="شاشة_بياناتي">
+      <div class="أيقونة_البطاقة أخضر">📈</div>
+      <div class="نص_البطاقة"><h3>بياناتي</h3><p>عدد تحاليلاتي ومراجعينيّ</p></div>
+    </button>
+  `;
+}
+
+function بطاقات_التسليم() {
+  return `
+    <button class="بطاقة_رئيسية" data-انتقال="شاشة_جاهزين_للإرسال">
+      <div class="أيقونة_البطاقة أساسي">📤</div>
+      <div class="نص_البطاقة"><h3>جاهزين للإرسال</h3><p>المراجعين اللي خلصت تحاليلهم</p></div>
+    </button>
+    <button class="بطاقة_رئيسية" data-انتقال="شاشة_إعدادات_الdischarge">
+      <div class="أيقونة_البطاقة برتقالي">⚙️</div>
+      <div class="نص_البطاقة"><h3>الإعدادات</h3><p>النطاقات الطبيعية + قالب الرسالة</p></div>
+    </button>
+  `;
+}
+
+function عرض_اللوحة() {
+  إظهار_شاشة('شاشة_اللوحة');
+  document.getElementById('ترحيب_المستخدم').textContent = `أهلاً ${بيانات_المستخدم.currentName}`;
+  document.getElementById('عرض_الدور').textContent = أسماء_الأدوار[بيانات_المستخدم.role];
+
+  const حاوية = document.getElementById('بطاقات_اللوحة');
+  حاوية.innerHTML = '';
+
+  if (بيانات_المستخدم.role === 'reception') {
+    حاوية.innerHTML = بطاقات_الاستقبال();
+  } else if (بيانات_المستخدم.role === 'specialist') {
+    حاوية.innerHTML = بطاقات_الأخصائي();
+  } else if (بيانات_المستخدم.role === 'discharge') {
+    حاوية.innerHTML = بطاقات_التسليم();
+  } else if (بيانات_المستخدم.role === 'admin') {
+    حاوية.innerHTML = `
+      <div style="grid-column: 1/-1; text-align: center; margin-bottom: 8px; margin-top: 20px;">
+        <span style="background: linear-gradient(135deg, var(--بنفسجي), #7c3aed); color: white; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 700;">
+          🛡️ وضع المسؤول - كل الصلاحيات مفتوحة
+        </span>
+      </div>
+
+      <button class="بطاقة_رئيسية زر_أدمن" data-انتقال="شاشة_أدمن">
+        <div class="أيقونة_البطاقة" style="background: linear-gradient(135deg, #ede9fe, #ddd6fe);">🛡️</div>
+        <div class="نص_البطاقة"><h3>لوحة المسؤول</h3><p>Backup • حذف البيانات • الإحصائيات</p></div>
+      </button>
+
+      <h3 style="grid-column: 1/-1; color: white; font-size: 15px; margin: 12px 8px 4px;">📝 الاستقبال</h3>
+      ${بطاقات_الاستقبال()}
+      <h3 style="grid-column: 1/-1; color: white; font-size: 15px; margin: 12px 8px 4px;">🔬 الأخصائي</h3>
+      ${بطاقات_الأخصائي()}
+      <h3 style="grid-column: 1/-1; color: white; font-size: 15px; margin: 12px 8px 4px;">📤 التسليم</h3>
+      ${بطاقات_التسليم()}
+    `;
+  }
+
+  حاوية.querySelectorAll('[data-انتقال]').forEach(زر => {
+    زر.addEventListener('click', () => {
+      const معرف = زر.dataset.انتقال;
+      if (معرف === 'شاشة_تسجيل_مراجع') { إظهار_شاشة(معرف); بدء_تسجيل_مراجع(); }
+      if (معرف === 'شاشة_قائمة_المراجعين') عرض_قائمة_المراجعين();
+      if (معرف === 'شاشة_إدارة_التحاليل') عرض_إدارة_التحاليل();
+      if (معرف === 'شاشة_تصدير') عرض_تصدير();
+      if (معرف === 'شاشة_مراجعين_متاحين') عرض_مراجعين_متاحين();
+      if (معرف === 'شاشة_مراجعين_عندي') عرض_مراجعين_عندي();
+      if (معرف === 'شاشة_بياناتي') عرض_بياناتي();
+      if (معرف === 'شاشة_جاهزين_للإرسال') عرض_جاهزين_للإرسال();
+      if (معرف === 'شاشة_إعدادات_الdischarge') عرض_إعدادات_الdischarge();
+      if (معرف === 'شاشة_أدمن') عرض_لوحة_الأدمن();
+    });
+  });
+}
+
+document.querySelectorAll('[data-رجوع]').forEach(زر => {
+  زر.addEventListener('click', () => {
+    const وجهة = زر.dataset.رجوع;
+    if (وجهة === 'اللوحة') عرض_اللوحة();
+    else if (وجهة === 'مراجعين_عندي') عرض_مراجعين_عندي();
+  });
+});
+
+// ==========================================
+// Reception: تسجيل مراجع
+// ==========================================
+function بدء_تسجيل_مراجع() {
+  المراجع_الحالي = null;
+  جاري_الحفظ = false;
+  إعادة_تعيين_التسجيل();
+}
+
+function إعادة_تعيين_التسجيل() {
+  المراجع_الحالي = null;
+  document.getElementById('مراجع_اسم').value = '';
+  document.getElementById('مراجع_جوال').value = '';
+  document.getElementById('مراجع_عمر').value = '';
+  document.getElementById('خطوة_بيانات_المراجع').classList.remove('مخفي');
+  document.getElementById('خطوة_التحاليل').classList.add('مخفي');
+  document.getElementById('نقطة1').classList.add('نشط');
+  document.getElementById('نقطة2').classList.remove('نشط');
+
+  const زر = document.getElementById('زر_حفظ_مراجع');
+  if (زر) { زر.disabled = false; زر.textContent = '💾 حفظ المراجع'; }
+
+  document.querySelectorAll('#قائمة_التحاليل_المتاحة input').forEach(c => c.checked = false);
+  جاري_الحفظ = false;
+}
+
+document.getElementById('زر_التالي_1').addEventListener('click', async () => {
+  const الاسم = document.getElementById('مراجع_اسم').value.trim();
+  const الجوال = document.getElementById('مراجع_جوال').value.trim();
+  const العمر = document.getElementById('مراجع_عمر').value.trim();
+  const الجنس = document.querySelector('input[name="جنس"]:checked').value;
+
+  if (الاسم.split(' ').filter(ك => ك).length < 3) return alert('أدخل الاسم الثلاثي كاملاً');
+  if (!الجوال || الجوال.length < 10) return alert('أدخل رقم جوال صحيح');
+  if (!العمر || العمر < 1) return alert('أدخل العمر');
+
+  try {
+    const snapshot = await get(ref(db, 'counter'));
+    let العداد = snapshot.exists() ? snapshot.val() + 1 : 1;
+    await set(ref(db, 'counter'), العداد);
+    const الرقم = String(العداد).padStart(4, '0');
+    const رقم_المراجع = `${الاسم}#${الرقم}`;
+
+    المراجع_الحالي = {
+      fullName: الاسم, phone: الجوال, age: العمر, gender: الجنس,
+      patientCode: رقم_المراجع, status: 'waiting',
+      createdAt: Date.now(),
+      registeredBy: المستخدم.uid,
+      registeredByName: بيانات_المستخدم.currentName
+    };
+
+    document.getElementById('عرض_رقم_المراجع').textContent = رقم_المراجع;
+
+    const حاوية = document.getElementById('قائمة_التحاليل_المتاحة');
+    حاوية.innerHTML = '';
+    Object.keys(أنواع_التحاليل_الحالية)
+      .filter(k => أنواع_التحاليل_الحالية[k].active)
+      .sort((a, b) => (أنواع_التحاليل_الحالية[a].order || 0) - (أنواع_التحاليل_الحالية[b].order || 0))
+      .forEach(k => {
+        const ت = أنواع_التحاليل_الحالية[k];
+        حاوية.innerHTML += `
+          <label class="عنصر_تحليل">
+            <input type="checkbox" value="${k}">
+            <div class="مربع_اختيار"></div>
+            <div class="أيقونة_تحليل">${ت.icon || '🩺'}</div>
+            <div class="اسم_التحليل">${ت.name}</div>
+          </label>
+        `;
+      });
+
+    document.getElementById('خطوة_بيانات_المراجع').classList.add('مخفي');
+    document.getElementById('خطوة_التحاليل').classList.remove('مخفي');
+    document.getElementById('نقطة1').classList.remove('نشط');
+    document.getElementById('نقطة2').classList.add('نشط');
+  } catch (خطأ) {
+    console.error(خطأ);
+    alert('حدث خطأ: ' + خطأ.message);
+  }
+});
+
+document.getElementById('زر_حفظ_مراجع').addEventListener('click', async () => {
+  if (جاري_الحفظ) return;
+
+  const مختارة = [...document.querySelectorAll('#قائمة_التحاليل_المتاحة input:checked')];
+  if (مختارة.length === 0) return alert('اختر تحليل واحد على الأقل');
+  if (!المراجع_الحالي) return alert('حدث خطأ، أعد التسجيل');
+
+  جاري_الحفظ = true;
+  const زر = document.getElementById('زر_حفظ_مراجع');
+  زر.disabled = true; زر.textContent = '⏳ جاري الحفظ...';
+
+  try {
+    const مفتاح_مراجع = push(ref(db, 'patients')).key;
+    const تحديث = {};
+    تحديث[`patients/${مفتاح_مراجع}`] = المراجع_الحالي;
+
+    مختارة.forEach(خانة => {
+      const مفتاح_تحليل = push(ref(db, 'tests')).key;
+      تحديث[`tests/${مفتاح_تحليل}`] = {
+        patientId: مفتاح_مراجع,
+        testTypeId: خانة.value,
+        status: 'pending',
+        createdAt: Date.now()
+      };
+    });
+
+    await update(ref(db), تحديث);
+    توست('✅ تم تسجيل المراجع بنجاح');
+
+    المراجع_الحالي = null;
+    جاري_الحفظ = false;
+    عرض_اللوحة();
+    إعادة_تعيين_التسجيل();
+  } catch (خطأ) {
+    console.error(خطأ);
+    alert('حدث خطأ في الحفظ: ' + خطأ.message);
+    جاري_الحفظ = false;
+    زر.disabled = false;
+    زر.textContent = '💾 حفظ المراجع';
+  }
+});
+
+// ==========================================
+// Reception: قائمة المراجعين
+// ==========================================
+function عرض_قائمة_المراجعين() {
+  إظهار_شاشة('شاشة_قائمة_المراجعين');
+  document.getElementById('بحث_مراجعين').value = '';
+  رسم_قائمة_المراجعين();
+}
+
+function حالة_المراجع(status) {
+  if (status === 'waiting') return { css: 'انتظار', نص: '⏳ بانتظار أخصائي' };
+  if (status === 'assigned') return { css: 'جاري', نص: '🔬 جاري التحليل' };
+  if (status === 'completed') return { css: 'جاهز', نص: '✅ جاهز للإرسال' };
+  if (status === 'sent') return { css: 'مُرسل', نص: '📤 تم الإرسال' };
+  return { css: 'انتظار', نص: status };
+}
+
+async function رسم_قائمة_المراجعين(فلتر = '') {
+  const حاوية = document.getElementById('قائمة_مراجعين');
+  حاوية.innerHTML = '<div class="حالة_فارغة"><p>جاري التحميل...</p></div>';
+
+  try {
+    const snap = await get(ref(db, 'patients'));
+    if (!snap.exists()) {
+      حاوية.innerHTML = '<div class="حالة_فارغة"><div class="أيقونة">📭</div><p>لا يوجد مراجعين بعد</p></div>';
+      return;
+    }
+
+    let مراجعين = Object.entries(snap.val()).map(([k, v]) => ({ id: k, ...v }));
+    مراجعين.sort((a, b) => b.createdAt - a.createdAt);
+
+    if (فلتر) {
+      مراجعين = مراجعين.filter(م =>
+        (م.patientCode || '').includes(فلتر) || (م.fullName || '').includes(فلتر) || (م.phone || '').includes(فلتر)
+      );
+    }
+
+    if (مراجعين.length === 0) {
+      حاوية.innerHTML = '<div class="حالة_فارغة"><div class="أيقونة">🔍</div><p>لا توجد نتائج مطابقة</p></div>';
+      return;
+    }
+
+    const testsSnap = await get(ref(db, 'tests'));
+    const كل_التحاليل = testsSnap.exists() ? Object.values(testsSnap.val()) : [];
+
+    حاوية.innerHTML = مراجعين.map(م => {
+      const تحاليل_المراجع = كل_التحاليل.filter(ت => ت.patientId === م.id);
+      const حالة = حالة_المراجع(م.status);
+      return `
+        <div class="بطاقة_مراجع">
+          <div class="رأس_البطاقة">
+            <div>
+              <div class="اسم">${م.patientCode}</div>
+              <div class="معلومة">📱 ${م.phone} • 🎂 ${م.age} سنة</div>
+              <div class="معلومة">🕐 ${وقت_عربي(م.createdAt)}</div>
+            </div>
+            <div class="شارة ${حالة.css}">${حالة.نص}</div>
+          </div>
+          <div style="font-size: 13px; color: var(--رمادي);">
+            📋 عدد التحاليل: <strong>${تحاليل_المراجع.length}</strong>
+            ${م.assignedToName ? ` • 🔬 الأخصائي: ${م.assignedToName}` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (خطأ) {
+    console.error(خطأ);
+    حاوية.innerHTML = '<div class="حالة_فارغة"><p>حدث خطأ في التحميل</p></div>';
+  }
+}
+
+document.getElementById('بحث_مراجعين').addEventListener('input', (e) => {
+  رسم_قائمة_المراجعين(e.target.value.trim());
+});
+
+// ==========================================
+// Reception: إدارة التحاليل
+// ==========================================
+function عرض_إدارة_التحاليل() {
+  إظهار_شاشة('شاشة_إدارة_التحاليل');
+  عرض_أنواع_التحاليل();
+}
+
+async function عرض_أنواع_التحاليل() {
+  const snapshot = await get(ref(db, 'testTypes'));
+  أنواع_التحاليل_الحالية = snapshot.exists() ? snapshot.val() : {};
+  const حاوية = document.getElementById('قائمة_أنواع_التحاليل');
+  const أنواع = Object.entries(أنواع_التحاليل_الحالية)
+    .sort((a, b) => (a[1].order || 0) - (b[1].order || 0));
+
+  if (أنواع.length === 0) {
+    حاوية.innerHTML = '<p style="color: var(--رمادي); text-align: center; padding: 20px;">لا توجد تحاليل</p>';
+    return;
+  }
+
+  حاوية.innerHTML = أنواع.map(([k, ت]) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--خلفية);border-radius:10px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:10px;flex:1;">
+        <span style="font-size:22px;">${ت.icon || '🩺'}</span>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:14px;">${ت.name}</div>
+          <div style="font-size:12px;color:var(--رمادي);">${ت.unit || ''} ${ت.normalRange ? '• نطاق: ' + ت.normalRange : ''}</div>
+        </div>
+      </div>
+      <button class="زر_صغير أحمر" data-حذف_تحليل="${k}" style="flex:0 0 auto;min-width:auto;padding:8px 12px;">🗑️</button>
+    </div>
+  `).join('');
+
+  حاوية.querySelectorAll('[data-حذف_تحليل]').forEach(زر => {
+    زر.addEventListener('click', async () => {
+      if (!confirm('حذف هذا التحليل؟')) return;
+      await remove(ref(db, `testTypes/${زر.dataset.حذف_تحليل}`));
+      await تحميل_أنواع_التحاليل();
+      عرض_أنواع_التحاليل();
+      توست('🗑️ تم الحذف');
+    });
+  });
+}
+
+document.getElementById('زر_إضافة_تحليل').addEventListener('click', async () => {
+  const الاسم = document.getElementById('تحليل_اسم').value.trim();
+  const الأيقونة = document.getElementById('تحليل_أيقونة').value.trim() || '🩺';
+  const الوحدة = document.getElementById('تحليل_وحدة').value.trim();
+  const النطاق = document.getElementById('تحليل_نطاق').value.trim();
+
+  if (!الاسم) return alert('أدخل اسم التحليل');
+
+  const عدد = Object.keys(أنواع_التحاليل_الحالية).length;
+  const مفتاح = push(ref(db, 'testTypes')).key;
+
+  await set(ref(db, `testTypes/${مفتاح}`), {
+    name: الاسم, icon: الأيقونة, unit: الوحدة, normalRange: النطاق,
+    active: true, order: عدد + 1
+  });
+
+  document.getElementById('تحليل_اسم').value = '';
+  document.getElementById('تحليل_أيقونة').value = '';
+  document.getElementById('تحليل_وحدة').value = '';
+  document.getElementById('تحليل_نطاق').value = '';
+
+  await تحميل_أنواع_التحاليل();
+  عرض_أنواع_التحاليل();
+  توست('✅ تمت الإضافة');
+});
+
+// ==========================================
+// Specialist: المراجعين المتاحين
+// ==========================================
+async function عرض_مراجعين_متاحين() {
+  إظهار_شاشة('شاشة_مراجعين_متاحين');
+  const حاوية = document.getElementById('قائمة_متاحين');
+  حاوية.innerHTML = '<div class="حالة_فارغة"><p>جاري التحميل...</p></div>';
+
+  try {
+    const snap = await get(ref(db, 'patients'));
+    if (!snap.exists()) {
+      حاوية.innerHTML = '<div class="حالة_فارغة"><div class="أيقونة">📭</div><p>لا يوجد مراجعين بعد</p></div>';
+      return;
+    }
+
+    const مراجعين = Object.entries(snap.val())
+      .map(([k, v]) => ({ id: k, ...v }))
+      .filter(م => م.status === 'waiting')
+      .sort((a, b) => a.createdAt - b.createdAt);
+
+    if (مراجعين.length === 0) {
+      حاوية.innerHTML = '<div class="حالة_فارغة"><div class="أيقونة">✨</div><p>ما فيه مراجعين متاحين حالياً</p></div>';
+      return;
+    }
+
+    const testsSnap = await get(ref(db, 'tests'));
+    const كل_التحاليل = testsSnap.exists() ? Object.values(testsSnap.val()) : [];
+
+    حاوية.innerHTML = مراجعين.map(م => {
+      const تحاليل_المراجع = كل_التحاليل.filter(ت => ت.patientId === م.id);
+      return `
+        <div class="بطاقة_مراجع">
+          <div class="رأس_البطاقة">
+            <div>
+              <div class="اسم">${م.patientCode}</div>
+              <div class="معلومة">📱 ${م.phone} • 🎂 ${م.age} سنة • ${م.gender}</div>
+              <div class="معلومة">🕐 ${وقت_عربي(م.createdAt)}</div>
+            </div>
+            <div class="شارة انتظار">⏳ بانتظار</div>
+          </div>
+          <div style="font-size: 13px; color: var(--رمادي); margin-bottom: 10px;">
+            📋 ${تحاليل_المراجع.length} تحليل مطلوب
+          </div>
+          <button class="زر_صغير أساسي" data-استلام="${م.id}">🔬 استلام هذا المراجع</button>
+        </div>
+      `;
+    }).join('');
+
+    حاوية.querySelectorAll('[data-استلام]').forEach(زر => {
+      زر.addEventListener('click', () => استلام_مراجع(زر.dataset.استلام));
+    });
+  } catch (خطأ) {
+    console.error(خطأ);
+    حاوية.innerHTML = '<div class="حالة_فارغة"><p>حدث خطأ في التحميل</p></div>';
+  }
+}
+
+async function استلام_مراجع(معرف_مراجع) {
+  if (!confirm('تأكيد استلام هذا المراجع؟')) return;
+
+  try {
+    const snap = await get(ref(db, `patients/${معرف_مراجع}/status`));
+    if (!snap.exists() || snap.val() !== 'waiting') {
+      alert('عذراً، تم استلام هذا المراجع من أخصائي آخر');
+      عرض_مراجعين_متاحين();
+      return;
+    }
+
+    await update(ref(db, `patients/${معرف_مراجع}`), {
+      status: 'assigned',
+      assignedTo: المستخدم.uid,
+      assignedToName: بيانات_المستخدم.currentName,
+      assignedAt: Date.now()
+    });
+
+    توست('✅ تم استلام المراجع');
+    عرض_مراجعين_عندي();
+  } catch (خطأ) {
+    console.error(خطأ);
+    alert('حدث خطأ: ' + خطأ.message);
+  }
+}
+
+// ==========================================
+// Specialist: المراجعين اللي عندي
+// ==========================================
+async function عرض_مراجعين_عندي() {
+  إظهار_شاشة('شاشة_مراجعين_عندي');
+  const حاوية = document.getElementById('قائمة_عندي');
+  حاوية.innerHTML = '<div class="حالة_فارغة"><p>جاري التحميل...</p></div>';
+
+  try {
+    const snap = await get(ref(db, 'patients'));
+    if (!snap.exists()) {
+      حاوية.innerHTML = '<div class="حالة_فارغة"><div class="أيقونة">📭</div><p>ما فيه مراجعين عندك</p></div>';
+      return;
+    }
+
+    const مراجعين = Object.entries(snap.val())
+      .map(([k, v]) => ({ id: k, ...v }))
+      .filter(م => م.assignedTo === المستخدم.uid && م.status === 'assigned')
+      .sort((a, b) => a.assignedAt - b.assignedAt);
+
+    if (مراجعين.length === 0) {
+      حاوية.innerHTML = '<div class="حالة_فارغة"><div class="أيقونة">🔬</div><p>ما عندك مراجعين حالياً</p></div>';
+      return;
+    }
+
+    const testsSnap = await get(ref(db, 'tests'));
+    const كل_التحاليل = testsSnap.exists() ? testsSnap.val() : {};
+
+    حاوية.innerHTML = مراجعين.map(م => {
+      const تحاليل_المراجع = Object.entries(كل_التحاليل)
+        .filter(([k, ت]) => ت.patientId === م.id)
+        .map(([k, ت]) => ({ id: k, ...ت }));
+      return `
+        <div class="بطاقة_مراجع">
+          <div class="رأس_البطاقة">
+            <div>
+              <div class="اسم">${م.patientCode}</div>
+              <div class="معلومة">📱 ${م.phone} • 🎂 ${م.age} سنة</div>
+            </div>
+            <div class="شارة جاري">🔬 جاري</div>
+          </div>
+          <div style="font-size: 13px; color: var(--رمادي); margin-bottom: 10px;">
+            📋 ${تحاليل_المراجع.length} تحليل
+          </div>
+          <button class="زر_صغير أخضر" data-إدخال="${م.id}">📝 إدخال النتائج</button>
+        </div>
+      `;
+    }).join('');
+
+    حاوية.querySelectorAll('[data-إدخال]').forEach(زر => {
+      زر.addEventListener('click', () => فتح_إدخال_نتائج(زر.dataset.إدخال));
+    });
+  } catch (خطأ) {
+    console.error(خطأ);
+    حاوية.innerHTML = '<div class="حالة_فارغة"><p>حدث خطأ في التحميل</p></div>';
+  }
+}
+
+// ==========================================
+// Specialist: إدخال النتائج
+// ==========================================
+async function فتح_إدخال_نتائج(معرف_مراجع) {
+  إظهار_شاشة('شاشة_إدخال_نتائج');
+  const حاوية_البيانات = document.getElementById('بيانات_المراجع_الحالي');
+  const حاوية_الحقول = document.getElementById('حقول_النتائج');
+
+  const snap = await get(ref(db, `patients/${معرف_مراجع}`));
+  if (!snap.exists()) return alert('المراجع غير موجود');
+  المراجع_الحالي_للتحليل = { id: معرف_مراجع, ...snap.val() };
+
+  حاوية_البيانات.innerHTML = `
+    <div class="بطاقة_رقم">
+      <div class="تسمية">المراجع</div>
+      <div class="رقم">${المراجع_الحالي_للتحليل.patientCode}</div>
+    </div>
+  `;
+
+  const testsSnap = await get(ref(db, 'tests'));
+  const كل_التحاليل = testsSnap.exists() ? testsSnap.val() : {};
+  const تحاليل_المراجع = Object.entries(كل_التحاليل)
+    .filter(([k, ت]) => ت.patientId === معرف_مراجع)
+    .map(([k, ت]) => ({ id: k, ...ت }));
+
+  حاوية_الحقول.innerHTML = تحاليل_المراجع.map(ت => {
+    const نوع = أنواع_التحاليل_الحالية[ت.testTypeId] || { name: 'غير معروف', icon: '🩺', unit: '', normalRange: '' };
+    const القيمة_الحالية = ت.value || '';
+
+    if (هو_فصيلة_دم(نوع)) {
+      return `
+        <div class="حقل_قيمة">
+          <div class="عنوان_حقل">
+            <div class="أيقونة">${نوع.icon}</div>
+            <div class="اسم">${نوع.name}</div>
+          </div>
+          <div class="شبكة_فصائل" data-test-key="${ت.id}">
+            ${فصائل_الدم.map(ف => `
+              <button type="button" class="زر_فصيلة ${القيمة_الحالية === ف ? 'مختار' : ''}" data-value="${ف}">${ف}</button>
+            `).join('')}
+          </div>
+          <input type="hidden" id="نتيجة-${ت.id}" value="${القيمة_الحالية}">
+        </div>
+      `;
+    }
+
+    return `
+      <div class="حقل_قيمة">
+        <div class="عنوان_حقل">
+          <div class="أيقونة">${نوع.icon}</div>
+          <div class="اسم">${نوع.name}</div>
+          ${نوع.unit ? `<div class="وحدة">${نوع.unit}</div>` : ''}
+          ${نوع.normalRange ? `<div class="نطاق_طبيعي">📏 ${نوع.normalRange}</div>` : ''}
+        </div>
+        <input type="text" id="نتيجة-${ت.id}" placeholder="أدخل النتيجة" value="${القيمة_الحالية}">
+      </div>
+    `;
+  }).join('');
+
+  حاوية_الحقول.querySelectorAll('.زر_فصيلة').forEach(زر => {
+    زر.addEventListener('click', function() {
+      const حاوية_الفصيلة = this.parentElement;
+      const مفتاح_التحليل = حاوية_الفصيلة.getAttribute('data-test-key');
+      حاوية_الفصيلة.querySelectorAll('.زر_فصيلة').forEach(z => z.classList.remove('مختار'));
+      this.classList.add('مختار');
+      const حقل_المخفي = document.getElementById(`نتيجة-${مفتاح_التحليل}`);
+      if (حقل_المخفي) حقل_المخفي.value = this.getAttribute('data-value');
+    });
+  });
+
+  document.getElementById('زر_إنهاء_التحليل').onclick = إنهاء_التحليل;
+}
+
+async function إنهاء_التحليل() {
+  if (!المراجع_الحالي_للتحليل) return;
+  const زر = document.getElementById('زر_إنهاء_التحليل');
+  if (زر.disabled) return;
+  زر.disabled = true; زر.textContent = 'جاري الحفظ...';
+
+  try {
+    const testsSnap = await get(ref(db, 'tests'));
+    const كل_التحاليل = testsSnap.exists() ? testsSnap.val() : {};
+    const تحاليل_المراجع = Object.entries(كل_التحاليل)
+      .filter(([k, ت]) => ت.patientId === المراجع_الحالي_للتحليل.id);
+
+    const تحديث = {};
+    const ناقصة = [];
+    let تحاليل_بدون_حقول = 0;
+
+    تحاليل_المراجع.forEach(([k, ت]) => {
+      const حقل = document.getElementById(`نتيجة-${k}`);
+
+      if (!حقل) {
+        if (ت.value && ت.status === 'done') return;
+        تحاليل_بدون_حقول++;
+        return;
+      }
+
+      const قيمة = حقل.value.trim();
+      if (!قيمة) {
+        const نوع = أنواع_التحاليل_الحالية[ت.testTypeId] || { name: 'تحليل' };
+        ناقصة.push(نوع.name);
+        return;
+      }
+
+      تحديث[`tests/${k}/value`] = قيمة;
+      تحديث[`tests/${k}/status`] = 'done';
+      تحديث[`tests/${k}/completedBy`] = المستخدم.uid;
+      تحديث[`tests/${k}/completedByName`] = بيانات_المستخدم.currentName;
+      تحديث[`tests/${k}/completedAt`] = Date.now();
+    });
+
+    if (ناقصة.length > 0) {
+      alert('الرجاء إدخال النتائج التالية:\n\n• ' + ناقصة.join('\n• '));
+      زر.disabled = false;
+      زر.textContent = '✅ إنهاء وإرسال للـ Discharge';
+      return;
+    }
+
+    if (تحاليل_بدون_حقول > 0) {
+      if (!confirm(`يوجد ${تحاليل_بدون_حقول} تحليل بدون حقل إدخال. هل تريد الإنهاء على أي حال؟`)) {
+        زر.disabled = false;
+        زر.textContent = '✅ إنهاء وإرسال للـ Discharge';
+        return;
+      }
+    }
+
+    تحديث[`patients/${المراجع_الحالي_للتحليل.id}/status`] = 'completed';
+    تحديث[`patients/${المراجع_الحالي_للتحليل.id}/completedAt`] = Date.now();
+
+    await update(ref(db), تحديث);
+    توست('✅ تم إنهاء التحليل');
+    عرض_مراجعين_عندي();
+  } catch (خطأ) {
+    console.error(خطأ);
+    alert('حدث خطأ: ' + خطأ.message);
+  } finally {
+    زر.disabled = false;
+    زر.textContent = '✅ إنهاء وإرسال للـ Discharge';
+  }
+}
+
+// ==========================================
+// Specialist: بياناتي
+// ==========================================
+async function عرض_بياناتي() {
+  إظهار_شاشة('شاشة_بياناتي');
+  const حاوية = document.getElementById('محتوى_بياناتي');
+  حاوية.innerHTML = '<div class="حالة_فارغة"><p>جاري التحميل...</p></div>';
+
+  try {
+    const snap = await get(ref(db, 'tests'));
+    const المرضى_snap = await get(ref(db, 'patients'));
+
+    const كل_التحاليل = snap.exists() ? Object.entries(snap.val()).map(([k,v]) => ({id:k, ...v})) : [];
+    const كل_المرضى = المرضى_snap.exists() ? Object.entries(المرضى_snap.val()).map(([k,v]) => ({id:k, ...v})) : [];
+
+    const تحاليلي = كل_التحاليل.filter(ت => ت.completedBy === المستخدم.uid);
+    const اليوم = new Date(); اليوم.setHours(0,0,0,0);
+    const تحاليل_اليوم = تحاليلي.filter(ت => (ت.completedAt || 0) >= اليوم.getTime());
+    const مراجعين_اليوم = new Set(تحاليل_اليوم.map(ت => ت.patientId)).size;
+    const معرفات_مراجعين = [...new Set(تحاليلي.map(ت => ت.patientId))];
+    const مراجعين_فريدين = معرفات_مراجعين.length;
+
+    const التفاصيل = تحاليلي
+      .sort((a,b) => (b.completedAt || 0) - (a.completedAt || 0))
+      .map(ت => {
+        const مريض = كل_المرضى.find(م => م.id === ت.patientId);
+        const نوع = أنواع_التحاليل_الحالية[ت.testTypeId] || { name: '؟', icon: '🩺', unit: '' };
+        return `
+          <div class="صف_نطاق" style="margin-bottom: 6px;">
+            <span class="أيقونة">${نوع.icon}</span>
+            <div style="flex: 1;">
+              <div style="font-weight: 700; font-size: 14px;">${مريض?.fullName || 'غير معروف'}</div>
+              <div style="font-size: 12px; color: var(--رمادي);">${نوع.name} • ${تاريخ_عربي(ت.completedAt)}</div>
+            </div>
+            <div style="font-weight: 800; color: var(--أساسي-غامق); font-size: 14px;">${ت.value || '-'}</div>
+          </div>
+        `;
+      }).join('');
+
+    حاوية.innerHTML = `
+      <div class="شبكة_إحصاء">
+        <div class="بطاقة_إحصاء أساسي">
+          <div class="رقم">${تحاليلي.length}</div>
+          <div class="عنوان">إجمالي التحاليل</div>
+        </div>
+        <div class="بطاقة_إحصاء أخضر">
+          <div class="رقم">${مراجعين_فريدين}</div>
+          <div class="عنوان">إجمالي المراجعين</div>
+        </div>
+        <div class="بطاقة_إحصاء برتقالي">
+          <div class="رقم">${تحاليل_اليوم.length}</div>
+          <div class="عنوان">تحاليل اليوم</div>
+        </div>
+        <div class="بطاقة_إحصاء بنفسجي">
+          <div class="رقم">${مراجعين_اليوم}</div>
+          <div class="عنوان">مراجعين اليوم</div>
+        </div>
+      </div>
+
+      <div class="بطاقة_محتوى">
+        <h3 style="margin-bottom: 12px; font-size: 16px;">📋 آخر التحاليل</h3>
+        ${التفاصيل || '<div class="حالة_فارغة"><p>لا توجد تحاليل بعد</p></div>'}
+      </div>
+    `;
+  } catch (خطأ) {
+    console.error(خطأ);
+    حاوية.innerHTML = '<div class="حالة_فارغة"><p>حدث خطأ</p></div>';
+  }
+}
+
+// ==========================================
+// Discharge: جاهزين للإرسال
+// ==========================================
+async function عرض_جاهزين_للإرسال() {
+  إظهار_شاشة('شاشة_جاهزين_للإرسال');
+  const حاوية = document.getElementById('قائمة_جاهزين');
+  حاوية.innerHTML = '<div class="حالة_فارغة"><p>جاري التحميل...</p></div>';
+
+  try {
+    const snap = await get(ref(db, 'patients'));
+    if (!snap.exists()) {
+      حاوية.innerHTML = '<div class="حالة_فارغة"><div class="أيقونة">📭</div><p>لا يوجد مراجعين</p></div>';
+      return;
+    }
+
+    const مراجعين = Object.entries(snap.val())
+      .map(([k, v]) => ({ id: k, ...v }))
+      .filter(م => م.status === 'completed' || م.status === 'sent')
+      .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
+
+    if (مراجعين.length === 0) {
+      حاوية.innerHTML = '<div class="حالة_فارغة"><div class="أيقونة">✨</div><p>ما فيه مراجعين جاهزين للإرسال</p></div>';
+      return;
+    }
+
+    const testsSnap = await get(ref(db, 'tests'));
+    const كل_التحاليل = testsSnap.exists() ? testsSnap.val() : {};
+
+    حاوية.innerHTML = مراجعين.map(م => {
+      const تحاليل_المراجع = Object.entries(كل_التحاليل)
+        .filter(([k, ت]) => ت.patientId === م.id)
+        .map(([k, ت]) => ({ id: k, ...ت }));
+      const حالة = حالة_المراجع(م.status);
+
+      return `
+        <div class="بطاقة_مراجع">
+          <div class="رأس_البطاقة">
+            <div>
+              <div class="اسم">${م.patientCode}</div>
+              <div class="معلومة">📱 ${م.phone}</div>
+            </div>
+            <div class="شارة ${حالة.css}">${حالة.نص}</div>
+          </div>
+          <table class="جدول_تحاليل">
+            <tbody>
+              ${تحاليل_المراجع.map(ت => {
+                const نوع = أنواع_التحاليل_الحالية[ت.testTypeId] || { name: '?' };
+                return `<tr>
+                  <td>${نوع.icon || ''} ${نوع.name}</td>
+                  <td>${ت.value || '-'} ${نوع.unit || ''}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+          <div class="أزرار_بطاقة">
+            ${م.status === 'completed' ? `
+              <button class="زر_صغير أخضر" data-إرسال="${م.id}">📤 إرسال واتساب</button>
+            ` : `
+              <button class="زر_صغير أساسي" data-إعادة="${م.id}">📤 إعادة الإرسال</button>
+            `}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    حاوية.querySelectorAll('[data-إرسال], [data-إعادة]').forEach(زر => {
+      زر.addEventListener('click', () => إرسال_واتساب(زر.dataset.إرسال || زر.dataset.إعادة));
+    });
+  } catch (خطأ) {
+    console.error(خطأ);
+    حاوية.innerHTML = '<div class="حالة_فارغة"><p>حدث خطأ</p></div>';
+  }
+}
+
+// ==========================================
+// Discharge: الإعدادات
+// ==========================================
+async function عرض_إعدادات_الdischarge() {
+  إظهار_شاشة('شاشة_إعدادات_الdischarge');
+  await تحميل_أنواع_التحاليل();
+  await تحميل_القالب();
+  عرض_قائمة_النطاقات();
+  document.getElementById('قالب_الرسالة').value = قالب_الرسالة_الحالي;
+  تحديث_معاينة_القالب();
+}
+
+function عرض_قائمة_النطاقات() {
+  const حاوية = document.getElementById('قائمة_النطاقات');
+  const أنواع = Object.entries(أنواع_التحاليل_الحالية)
+    .sort((a, b) => (a[1].order || 0) - (b[1].order || 0));
+
+  حاوية.innerHTML = أنواع.map(([k, ت]) => `
+    <div class="صف_نطاق">
+      <span class="أيقونة">${ت.icon || '🩺'}</span>
+      <div class="اسم">${ت.name}</div>
+      <input type="text" data-range-key="${k}" value="${ت.normalRange || ''}" placeholder="مثال: 70-140">
+    </div>
+  `).join('');
+
+  حاوية.querySelectorAll('[data-range-key]').forEach(input => {
+    input.addEventListener('blur', async function() {
+      const مفتاح = this.getAttribute('data-range-key');
+      const قيمة = this.value.trim();
+      await update(ref(db, `testTypes/${مفتاح}`), { normalRange: قيمة });
+      أنواع_التحاليل_الحالية[مفتاح].normalRange = قيمة;
+      توست('✅ تم حفظ النطاق');
+    });
+  });
+}
+
+function تحديث_معاينة_القالب() {
+  const قالب = document.getElementById('قالب_الرسالة').value || '';
+  const معاينة = قالب
+    .replace(/{الاسم}/g, 'باسل بندر الحربي')
+    .replace(/{الرقم}/g, 'باسل بندر الحربي#0001')
+    .replace(/{التاريخ}/g, تاريخ_عربي(Date.now()))
+    .replace(/{النتائج}/g, '- فصيلة الدم: O+\n- ضغط الدم: 120/80 mmHg');
+  document.getElementById('معاينة_القالب').textContent = معاينة;
+}
+
+document.getElementById('قالب_الرسالة').addEventListener('input', تحديث_معاينة_القالب);
+
+document.getElementById('زر_حفظ_القالب').addEventListener('click', async () => {
+  const قالب = document.getElementById('قالب_الرسالة').value.trim();
+  if (!قالب) return alert('القالب فارغ');
+
+  const زر = document.getElementById('زر_حفظ_القالب');
+  زر.disabled = true; زر.textContent = 'جاري الحفظ...';
+  try {
+    await set(ref(db, 'settings/whatsappTemplate'), قالب);
+    قالب_الرسالة_الحالي = قالب;
+    توست('✅ تم حفظ القالب');
+  } catch (خطأ) {
+    console.error(خطأ);
+    alert('حدث خطأ');
+  } finally {
+    زر.disabled = false; زر.textContent = '💾 حفظ القالب';
+  }
+});
+
+// ==========================================
+// إرسال واتساب
+// ==========================================
+async function إرسال_واتساب(معرف_مراجع) {
+  const نافذة_واتساب = window.open('', '_blank');
+
+  if (نافذة_واتساب) {
+    نافذة_واتساب.document.write(`
+      <!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><title>جاري التحضير...</title></head>
+      <body style="font-family: Arial, sans-serif; text-align: center; padding: 60px 20px; background: #f8fafc; color: #334155;">
+        <div style="font-size: 48px; margin-bottom: 20px;">⏳</div>
+        <p style="font-size: 18px;">جاري تحضير رسالة واتساب...</p>
+      </body></html>
+    `);
+    نافذة_واتساب.document.close();
+  }
+
+  try {
+    const snap = await get(ref(db, `patients/${معرف_مراجع}`));
+    if (!snap.exists()) {
+      if (نافذة_واتساب) نافذة_واتساب.close();
+      return alert('المراجع غير موجود');
+    }
+    const م = snap.val();
+
+    const testsSnap = await get(ref(db, 'tests'));
+    const كل_التحاليل = testsSnap.exists() ? testsSnap.val() : {};
+    const تحاليل_المراجع = Object.values(كل_التحاليل).filter(ت => ت.patientId === معرف_مراجع);
+
+    const نتائج_نص = تحاليل_المراجع.map(ت => {
+      const نوع = أنواع_التحاليل_الحالية[ت.testTypeId] || { name: '؟', unit: '' };
+      return `- ${نوع.name}: ${ت.value || '-'} ${نوع.unit || ''}`;
+    }).join('\n');
+
+    let رسالة = قالب_الرسالة_الحالي || القالب_الافتراضي;
+    رسالة = رسالة.replace(/{الاسم}/g, م.fullName);
+    رسالة = رسالة.replace(/{الرقم}/g, م.patientCode);
+    رسالة = رسالة.replace(/{التاريخ}/g, تاريخ_عربي(Date.now()));
+    رسالة = رسالة.replace(/{النتائج}/g, نتائج_نص);
+
+    let رقم = (م.phone || '').replace(/[^0-9]/g, '');
+    if (رقم && !رقم.startsWith('966')) {
+      if (رقم.startsWith('0')) رقم = '966' + رقم.substring(1);
+      else رقم = '966' + رقم;
+    }
+
+    if (!رقم || رقم.length < 10) {
+      if (نافذة_واتساب) نافذة_واتساب.close();
+      alert('رقم الجوال غير صحيح: ' + م.phone);
+      return;
+    }
+
+    const رابط = `https://wa.me/${رقم}?text=${encodeURIComponent(رسالة)}`;
+
+    if (نافذة_واتساب && !نافذة_واتساب.closed) {
+      نافذة_واتساب.location.href = رابط;
+    } else {
+      const بديل = window.open(رابط, '_blank');
+      if (!بديل) عرض_رابط_الواتساب(رابط, م);
+    }
+
+    if (م.status !== 'sent') {
+      await update(ref(db, `patients/${معرف_مراجع}`), {
+        status: 'sent', sentAt: Date.now(),
+        sentBy: المستخدم.uid, sentByName: بيانات_المستخدم.currentName
+      });
+      توست('✅ تم الإرسال');
+      setTimeout(عرض_جاهزين_للإرسال, 1500);
+    }
+  } catch (خطأ) {
+    console.error('خطأ في الإرسال:', خطأ);
+    if (نافذة_واتساب && !نافذة_واتساب.closed) نافذة_واتساب.close();
+    alert('حدث خطأ في الإرسال');
+  }
+}
+
+function عرض_رابط_الواتساب(رابط, بيانات_المراجع) {
+  const نافذة = document.createElement('div');
+  نافذة.style.cssText = 'position: fixed; inset: 0; background: rgba(15,23,42,.6); z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 20px;';
+  نافذة.innerHTML = `
+    <div style="background: white; border-radius: 16px; padding: 24px; max-width: 500px; width: 100%; text-align: center;">
+      <div style="font-size: 48px; margin-bottom: 12px;">📤</div>
+      <h3 style="color: #0f172a; margin-bottom: 12px; font-size: 20px;">إرسال واتساب</h3>
+      <a href="${رابط}" target="_blank" rel="noopener" style="display: block; padding: 16px; background: #25D366; color: white; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px; margin-bottom: 8px;">📱 فتح واتساب</a>
+      <button onclick="this.closest('div').parentElement.parentElement.remove()" style="width: 100%; padding: 14px; background: #f1f5f9; color: #334155; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; font-family: inherit;">إغلاق</button>
+    </div>
+  `;
+  document.body.appendChild(نافذة);
+}
+
+// ==========================================
+// تصدير Excel
+// ==========================================
+async function عرض_تصدير() {
+  إظهار_شاشة('شاشة_تصدير');
+  await تحديث_ملخص_الإحصائيات();
+}
+
+async function تحديث_ملخص_الإحصائيات() {
+  const حاوية = document.getElementById('ملخص_الإحصائيات');
+  حاوية.innerHTML = '<p style="color: var(--رمادي);">جاري التحميل...</p>';
+
+  try {
+    const المرضى_snap = await get(ref(db, 'patients'));
+    const التحاليل_snap = await get(ref(db, 'tests'));
+
+    const المرضى = المرضى_snap.exists() ? Object.values(المرضى_snap.val()) : [];
+    const التحاليل = التحاليل_snap.exists() ? Object.values(التحاليل_snap.val()) : [];
+
+    حاوية.innerHTML = `
+      <div class="شبكة_إحصاء">
+        <div class="بطاقة_إحصاء أساسي">
+          <div class="رقم">${المرضى.length}</div>
+          <div class="عنوان">إجمالي المرضى</div>
+        </div>
+        <div class="بطاقة_إحصاء أخضر">
+          <div class="رقم">${التحاليل.length}</div>
+          <div class="عنوان">إجمالي التحاليل</div>
+        </div>
+        <div class="بطاقة_إحصاء برتقالي">
+          <div class="رقم">${التحاليل.filter(ت => ت.status === 'done').length}</div>
+          <div class="عنوان">تحاليل مكتملة</div>
+        </div>
+        <div class="بطاقة_إحصاء بنفسجي">
+          <div class="رقم">${المرضى.filter(م => م.status === 'sent').length}</div>
+          <div class="عنوان">تم إرسالها</div>
+        </div>
+      </div>
+    `;
+  } catch (خطأ) {
+    حاوية.innerHTML = '<p style="color: var(--خطر);">حدث خطأ في التحميل</p>';
+  }
+}
+
+document.getElementById('زر_تصدير_excel').addEventListener('click', async () => {
+  const زر = document.getElementById('زر_تصدير_excel');
+  زر.disabled = true; زر.textContent = '⏳ جاري التصدير...';
+
+  try {
+    if (!window.XLSX) {
+      alert('مكتبة Excel لم تُحمّل. تأكد من اتصالك بالإنترنت.');
+      return;
+    }
+
+    const المرضى_snap = await get(ref(db, 'patients'));
+    const التحاليل_snap = await get(ref(db, 'tests'));
+    const المستخدمين_snap = await get(ref(db, 'users'));
+
+    const المرضى = المرضى_snap.exists() ? Object.entries(المرضى_snap.val()).map(([k,v]) => ({id:k, ...v})) : [];
+    const التحاليل = التحاليل_snap.exists() ? Object.entries(التحاليل_snap.val()).map(([k,v]) => ({id:k, ...v})) : [];
+    const المستخدمين = المستخدمين_snap.exists() ? Object.entries(المستخدمين_snap.val()).map(([uid,v]) => ({uid, ...v})) : [];
+
+    const بيانات_المرضى = المرضى.map(م => ({
+      'الاسم': م.fullName || '',
+      'الرقم': م.patientCode || '',
+      'الجوال': م.phone || '',
+      'العمر': م.age || '',
+      'الجنس': م.gender || '',
+      'الحالة': حالة_المراجع(م.status).نص,
+      'تاريخ التسجيل': تاريخ_عربي(م.createdAt),
+      'سجّله': م.registeredByName || '',
+      'الأخصائي': م.assignedToName || ''
+    }));
+
+    const بيانات_التحاليل = التحاليل.map(ت => {
+      const مريض = المرضى.find(م => م.id === ت.patientId);
+      const نوع = أنواع_التحاليل_الحالية[ت.testTypeId] || { name: '?', unit: '' };
+      return {
+        'اسم المريض': مريض?.fullName || '',
+        'رقم المريض': مريض?.patientCode || '',
+        'التحليل': نوع.name,
+        'القيمة': ت.value || '',
+        'الوحدة': نوع.unit || '',
+        'الحالة': ت.status === 'done' ? 'مكتمل' : 'معلق',
+        'الأخصائي': ت.completedByName || '',
+        'التاريخ': ت.completedAt ? تاريخ_عربي(ت.completedAt) : ''
+      };
+    });
+
+    const الأخصائيون = المستخدمين.filter(u => u.role === 'specialist' || u.role === 'admin');
+    const بيانات_الأخصائيين = الأخصائيون.map(أ => {
+      const تحاليله = التحاليل.filter(ت => ت.completedBy === أ.uid);
+      const مرضى_فريدين = new Set(تحاليله.map(ت => ت.patientId));
+      return {
+        'الاسم': أ.currentName || '(بدون اسم)',
+        'البريد': أ.email,
+        'إجمالي التحاليل': تحاليله.length,
+        'إجمالي المراجعين': مرضى_فريدين.size
+      };
+    });
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(بيانات_المرضى), 'المرضى');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(بيانات_التحاليل), 'التحاليل');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(بيانات_الأخصائيين), 'الأخصائيون');
+
+    const اسم_الملف = `تقرير_المختبر_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(wb, اسم_الملف);
+
+    توست('✅ تم تصدير الملف');
+  } catch (خطأ) {
+    console.error(خطأ);
+    alert('حدث خطأ في التصدير: ' + خطأ.message);
+  } finally {
+    زر.disabled = false;
+    زر.textContent = '📥 تصدير ملف Excel';
+  }
+});
+
+// ==========================================
+// 🛡️ لوحة الأدمن
+// ==========================================
+async function عرض_لوحة_الأدمن() {
+  if (بيانات_المستخدم.role !== 'admin') {
+    alert('هذه الصفحة للمسؤول فقط');
+    عرض_اللوحة();
+    return;
+  }
+
+  إظهار_شاشة('شاشة_أدمن');
+  await تحديث_إحصائيات_الأدمن();
+}
+
+async function تحديث_إحصائيات_الأدمن() {
+  const حاوية = document.getElementById('إحصائيات_الأدمن');
+  حاوية.innerHTML = '<p style="color: var(--رمادي);">جاري التحميل...</p>';
+
+  try {
+    const [snap_patients, snap_tests, snap_users, snap_types, snap_settings, snap_counter] = await Promise.all([
+      get(ref(db, 'patients')),
+      get(ref(db, 'tests')),
+      get(ref(db, 'users')),
+      get(ref(db, 'testTypes')),
+      get(ref(db, 'settings')),
+      get(ref(db, 'counter'))
+    ]);
+
+    const عدد_المرضى = snap_patients.exists() ? Object.keys(snap_patients.val()).length : 0;
+    const عدد_التحاليل = snap_tests.exists() ? Object.keys(snap_tests.val()).length : 0;
+    const عدد_المستخدمين = snap_users.exists() ? Object.keys(snap_users.val()).length : 0;
+    const عدد_الأنواع = snap_types.exists() ? Object.keys(snap_types.val()).length : 0;
+    const العداد = snap_counter.exists() ? snap_counter.val() : 0;
+    const عندها_قالب = snap_settings.exists() && snap_settings.val().whatsappTemplate;
+
+    حاوية.innerHTML = `
+      <div class="شبكة_إحصاء">
+        <div class="بطاقة_إحصاء أساسي">
+          <div class="رقم">${عدد_المرضى}</div>
+          <div class="عنوان">إجمالي المرضى</div>
+        </div>
+        <div class="بطاقة_إحصاء أخضر">
+          <div class="رقم">${عدد_التحاليل}</div>
+          <div class="عنوان">إجمالي التحاليل</div>
+        </div>
+        <div class="بطاقة_إحصاء برتقالي">
+          <div class="رقم">${عدد_المستخدمين}</div>
+          <div class="عنوان">المستخدمون</div>
+        </div>
+        <div class="بطاقة_إحصاء بنفسجي">
+          <div class="رقم">${عدد_الأنواع}</div>
+          <div class="عنوان">أنواع التحاليل</div>
+        </div>
+      </div>
+      <div style="padding: 12px; background: var(--خلفية); border-radius: 10px; font-size: 13px; color: var(--رمادي-غامق);">
+        🔢 آخر رقم مراجع: <strong>#${String(العداد).padStart(4, '0')}</strong>
+        • 💬 القالب المخصص: <strong>${عندها_قالب ? 'موجود ✅' : 'افتراضي'}</strong>
+      </div>
+    `;
+  } catch (خطأ) {
+    حاوية.innerHTML = `<p style="color: var(--خطر);">فشل التحميل: ${خطأ.message}</p>`;
+  }
+}
+
+document.getElementById('زر_backup').addEventListener('click', async () => {
+  const زر = document.getElementById('زر_backup');
+  زر.disabled = true; زر.textContent = '⏳ جاري التحضير...';
+
+  try {
+    const [snap_patients, snap_tests, snap_users, snap_types, snap_settings, snap_counter] = await Promise.all([
+      get(ref(db, 'patients')),
+      get(ref(db, 'tests')),
+      get(ref(db, 'users')),
+      get(ref(db, 'testTypes')),
+      get(ref(db, 'settings')),
+      get(ref(db, 'counter'))
+    ]);
+
+    const backup = {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      exportedBy: {
+        email: المستخدم.email,
+        name: بيانات_المستخدم.currentName
+      },
+      data: {
+        patients: snap_patients.exists() ? snap_patients.val() : {},
+        tests: snap_tests.exists() ? snap_tests.val() : {},
+        users: snap_users.exists() ? snap_users.val() : {},
+        testTypes: snap_types.exists() ? snap_types.val() : {},
+        settings: snap_settings.exists() ? snap_settings.val() : {},
+        counter: snap_counter.exists() ? snap_counter.val() : 0
+      }
+    };
+
+    const نص = JSON.stringify(backup, null, 2);
+    const ملف = new Blob([نص], { type: 'application/json' });
+    const رابط = URL.createObjectURL(ملف);
+    const a = document.createElement('a');
+    const الآن = new Date().toISOString().replace(/[:.]/g, '-');
+    a.href = رابط;
+    a.download = `backup_المختبر_${الآن}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(رابط);
+
+    توست('✅ تم تحميل Backup كامل');
+  } catch (خطأ) {
+    console.error(خطأ);
+    alert('فشل Backup: ' + خطأ.message);
+  } finally {
+    زر.disabled = false; زر.textContent = '⬇️ تحميل Backup كامل (JSON)';
+  }
+});
+
+document.getElementById('زر_restore').addEventListener('click', () => {
+  document.getElementById('ملف_backup').click();
+});
+
+document.getElementById('ملف_backup').addEventListener('change', async (event) => {
+  const ملف = event.target.files[0];
+  if (!ملف) return;
+
+  if (!confirm('⚠️ استعادة Backup سيحذف كل البيانات الحالية ويستبدلها بالبيانات في الملف.\n\nهل أنت متأكد؟')) {
+    event.target.value = '';
+    return;
+  }
+
+  if (!confirm('تأكيد أخير: هل تريد المتابعة؟')) {
+    event.target.value = '';
+    return;
+  }
+
+  const قارئ = new FileReader();
+  قارئ.onload = async (e) => {
+    try {
+      const backup = JSON.parse(e.target.result);
+
+      if (!backup.data) {
+        alert('ملف Backup غير صالح');
+        return;
+      }
+
+      const { patients, tests, users, testTypes, settings, counter } = backup.data;
+
+      await set(ref(db, 'patients'), patients || null);
+      await set(ref(db, 'tests'), tests || null);
+      await set(ref(db, 'users'), users || null);
+      await set(ref(db, 'testTypes'), testTypes || null);
+      await set(ref(db, 'settings'), settings || null);
+      await set(ref(db, 'counter'), counter || 0);
+
+      توست('✅ تم استعادة Backup بنجاح');
+      await تحديث_إحصائيات_الأدمن();
+      await تحميل_أنواع_التحاليل();
+      await تحميل_القالب();
+    } catch (خطأ) {
+      console.error(خطأ);
+      alert('فشل الاستعادة: ' + خطأ.message);
+    } finally {
+      event.target.value = '';
+    }
+  };
+  قارئ.readAsText(ملف);
+});
+
+document.getElementById('زر_حذف_المرضى').addEventListener('click', async () => {
+  if (!confirm('⚠️ سيتم حذف كل المرضى وكل التحاليل.\n\nالمستخدمون وأنواع التحاليل ستبقى.\n\nهل أنت متأكد؟')) return;
+  if (!confirm('تأكيد أخير: هل أنت متأكد 100%؟')) return;
+
+  const زر = document.getElementById('زر_حذف_المرضى');
+  زر.disabled = true; زر.textContent = '⏳ جاري الحذف...';
+
+  try {
+    await set(ref(db, 'patients'), null);
+    await set(ref(db, 'tests'), null);
+    await set(ref(db, 'counter'), 0);
+
+    توست('✅ تم حذف كل المرضى والتحاليل');
+    await تحديث_إحصائيات_الأدمن();
+  } catch (خطأ) {
+    console.error(خطأ);
+    alert('فشل الحذف: ' + خطأ.message);
+  } finally {
+    زر.disabled = false; زر.textContent = '🗑️ حذف كل المرضى والتحاليل';
+  }
+});
+
+document.getElementById('زر_حذف_التحاليل_الجاهزة').addEventListener('click', async () => {
+  if (!confirm('سيتم حذف المرضى الذين تم إرسال نتائجهم فقط.\n\nهل أنت متأكد؟')) return;
+
+  const زر = document.getElementById('زر_حذف_التحاليل_الجاهزة');
+  زر.disabled = true; زر.textContent = '⏳ جاري الحذف...';
+
+  try {
+    const snap = await get(ref(db, 'patients'));
+    if (!snap.exists()) {
+      alert('لا يوجد مرضى');
+      return;
+    }
+
+    const المرضى = Object.entries(snap.val());
+    const المرسلون = المرضى.filter(([k, v]) => v.status === 'sent');
+
+    if (المرسلون.length === 0) {
+      alert('لا يوجد مرضى تم إرسالهم');
+      return;
+    }
+
+    const تحديث = {};
+    for (const [id, _] of المرسلون) {
+      تحديث[`patients/${id}`] = null;
+    }
+
+    const testsSnap = await get(ref(db, 'tests'));
+    if (testsSnap.exists()) {
+      const معرفات_مرسلين = المرسلون.map(([id, _]) => id);
+      Object.entries(testsSnap.val()).forEach(([k, ت]) => {
+        if (معرفات_مرسلين.includes(ت.patientId)) {
+          تحديث[`tests/${k}`] = null;
+        }
+      });
+    }
+
+    await update(ref(db), تحديث);
+
+    توست(`✅ تم حذف ${المرسلون.length} مريض`);
+    await تحديث_إحصائيات_الأدمن();
+  } catch (خطأ) {
+    console.error(خطأ);
+    alert('فشل الحذف: ' + خطأ.message);
+  } finally {
+    زر.disabled = false; زر.textContent = '🗑️ حذف التحاليل المُرسلة فقط';
+  }
+});
+
+document.getElementById('زر_تصفير_العداد').addEventListener('click', async () => {
+  if (!confirm('سيتم تصفير عداد المراجعين. المراجع التالي سيكون #0001.\n\nهل أنت متأكد؟')) return;
+
+  try {
+    await set(ref(db, 'counter'), 0);
+    توست('✅ تم تصفير العداد');
+    await تحديث_إحصائيات_الأدمن();
+  } catch (خطأ) {
+    alert('فشل التصفير: ' + خطأ.message);
+  }
+});
+
+document.getElementById('زر_حذف_الكل').addEventListener('click', async () => {
+  if (!confirm('💥 تحذير: سيتم حذف كل شيء في قاعدة البيانات!\n\n• المرضى\n• التحاليل\n• أنواع التحاليل\n• الإعدادات\n• العداد\n\nالمستخدمون سيبقون.\n\nهل أنت متأكد؟')) return;
+
+  const نص_التأكيد = prompt('اكتب "احذف كل شي" للتأكيد:');
+  if (نص_التأكيد !== 'احذف كل شي') {
+    alert('تم إلغاء العملية');
+    return;
+  }
+
+  const زر = document.getElementById('زر_حذف_الكل');
+  زر.disabled = true; زر.textContent = '⏳ جاري الحذف...';
+
+  try {
+    await set(ref(db, 'patients'), null);
+    await set(ref(db, 'tests'), null);
+    await set(ref(db, 'testTypes'), null);
+    await set(ref(db, 'settings'), null);
+    await set(ref(db, 'counter'), 0);
+
+    await تحميل_أنواع_التحاليل();
+    await تحميل_القالب();
+
+    توست('✅ تم إعادة تعيين النظام بالكامل');
+    await تحديث_إحصائيات_الأدمن();
+  } catch (خطأ) {
+    console.error(خطأ);
+    alert('فشل الحذف: ' + خطأ.message);
+  } finally {
+    زر.disabled = false; زر.textContent = '💥 حذف كل شي (إعادة تعيين كاملة)';
+  }
+});
+</script>
+</body>
+</html>
